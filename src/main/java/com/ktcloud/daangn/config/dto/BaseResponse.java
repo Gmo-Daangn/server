@@ -11,6 +11,6 @@ public record BaseResponse<T>(
         T Data
 ) {
     public static <T> BaseResponse<T> success(T body) {
-        return new BaseResponse<>(HttpStatus.OK.value(), LocalDateTime.now(), "정상", null);
+        return new BaseResponse<>(HttpStatus.OK.value(), LocalDateTime.now(), "정상", body);
     }
 }
