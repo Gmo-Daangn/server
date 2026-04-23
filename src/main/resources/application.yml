@@ -1,2 +1,8 @@
 server:
   port: 8080
+
+spring:
+  application:
+    name: gmo-daangn
+  profiles:
+    default: dev
