@@ -38,3 +38,6 @@ out/
 
 ### env
 .env
+
+### Docker / local MySQL data (bind mount)
+mysql_data/
