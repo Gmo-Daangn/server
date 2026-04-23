@@ -1,6 +1,7 @@
 package com.ktcloud.daangn.member.controller;
 
 import com.ktcloud.daangn.config.dto.BaseResponse;
+import com.ktcloud.daangn.member.dto.MemberLoginRequestDto;
 import com.ktcloud.daangn.member.dto.MemberSignupRequestDto;
 import com.ktcloud.daangn.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
@@ -19,5 +20,10 @@ public class MemberController {
     @PostMapping("/auth")
     public BaseResponse<String> signup(@RequestBody MemberSignupRequestDto dto) {
         return BaseResponse.success(memberService.signup(dto));
+    }
+
+    @PostMapping("/auth/login")
+    public BaseResponse<String> login(@RequestBody MemberLoginRequestDto dto) {
+        return BaseResponse.success(memberService.login(dto));
     }
 }
