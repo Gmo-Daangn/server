@@ -44,12 +44,25 @@ public class CustomerExceptionHandler {
                 .body(new BaseResponse<>(ResultCode.BAD_REQUEST.getStatusCode(), LocalDateTime.now(), ex.getMessage(), null));
     }
 
-
+    
     @ExceptionHandler(InvalidInputException.class)
     protected ResponseEntity<BaseResponse<String>> apiCustomExeption(InvalidInputException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new BaseResponse<>(ex.getStatusCode(), LocalDateTime.now(), ex.getMessage(), null));
+    }
+
+    // 404 NOT_FOUND 에러 처리
+    @ExceptionHandler(NoHandlerFoundException.class)
+    protected ResponseEntity<BaseResponse<String>> handleNotFoundException(NoHandlerFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new BaseResponse<>(
+                        ResultCode.NOT_FOUND.getStatusCode(),
+                        LocalDateTime.now(),
+                        ex.getMessage(),
+                        null
+                ));
     }
 
     @ExceptionHandler(Exception.class)
