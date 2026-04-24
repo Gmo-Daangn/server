@@ -12,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -34,7 +36,9 @@ public class MemberServiceImpl implements MemberService{
 
     @Override
     public String login(MemberLoginRequestDto dto) {
-
-        return null;
+        Optional<Member> findMember = memberRepository.findByEmail(dto.email());
+        if (findMember.isEmpty()) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이메일 혹은 비밀번호 오류입니다.");
+        else if (!encoder.matches(dto.password(), findMember.get().getPassword())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이메일 혹은 비밀번호 오류입니다.");
+        return "회원 아이디 ID : "+ findMember.get().getId();
     }
 }
