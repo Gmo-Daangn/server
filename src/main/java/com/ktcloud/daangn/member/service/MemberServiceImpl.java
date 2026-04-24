@@ -1,6 +1,5 @@
 package com.ktcloud.daangn.member.service;
 
-import com.ktcloud.daangn.config.dto.BaseResponse;
 import com.ktcloud.daangn.config.exception.InvalidInputException;
 import com.ktcloud.daangn.member.dto.MemberLoginRequestDto;
 import com.ktcloud.daangn.member.dto.MemberSignupRequestDto;

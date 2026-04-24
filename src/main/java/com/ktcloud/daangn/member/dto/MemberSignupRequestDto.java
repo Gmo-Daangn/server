@@ -20,7 +20,7 @@ public record MemberSignupRequestDto(
                 .nickName(nickname)
                 .password(encoder.encode(password))
                 .createAt(LocalDateTime.now())
-                .providerToken(ProviderToken.Local)
+                .providerToken(ProviderToken.LOCAL)
                 .memberRole(MemberRole.MEMBER)
                 .build();
 
