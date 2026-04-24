@@ -16,17 +16,24 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import java.net.BindException;
 import java.security.SignatureException;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class CustomerExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    protected ResponseEntity<BaseResponse<String>> methodArgumentNotValidException(MethodArgumentNotValidException ex) {
-        FieldError fieldError = (FieldError) ex.getBindingResult().getAllErrors().getFirst();
-        String message = fieldError.getField().replaceFirst("_", "") + ": " + fieldError.getDefaultMessage();
+    protected ResponseEntity<BaseResponse<Map<String, String>>> methodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        Map<String, String> validationErrors = ex.getBindingResult().getFieldErrors().stream()
+                .collect(Collectors.toMap(
+                        FieldError::getField,
+                        error -> Optional.ofNullable(error.getDefaultMessage()).orElse("유효하지 않은 값입니다."),
+                        (existing, _) -> existing
+                ));
         return ResponseEntity
-                .status(ResultCode.BAD_REQUEST.getStatusCode())
-                .body(new BaseResponse<>(ResultCode.BAD_REQUEST.getStatusCode(), LocalDateTime.now(), message, null));
+                .status(ResultCode.VALIDATION_FAILED.getStatusCode())
+                .body(new BaseResponse<>(ResultCode.VALIDATION_FAILED.getStatusCode(), LocalDateTime.now(), ResultCode.VALIDATION_FAILED.getMessage(), validationErrors));
     }
 
     /// 매개변수 값이 올바르게 처리 되지 않았을때 에러처리
@@ -36,7 +43,7 @@ public class CustomerExceptionHandler {
                 .status(ResultCode.BAD_REQUEST.getStatusCode())
                 .body(new BaseResponse<>(ResultCode.BAD_REQUEST.getStatusCode(), LocalDateTime.now(), ex.getMessage(), null));
     }
-
+    //TODO NOT_FIND 변경
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     protected ResponseEntity<BaseResponse<String>> httpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex, HttpServletRequest  req) {
         return ResponseEntity
@@ -46,12 +53,13 @@ public class CustomerExceptionHandler {
 
     
     @ExceptionHandler(InvalidInputException.class)
-    protected ResponseEntity<BaseResponse<String>> apiCustomExeption(InvalidInputException ex) {
+    protected ResponseEntity<BaseResponse<String>> apiCustomException(InvalidInputException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new BaseResponse<>(ex.getStatusCode(), LocalDateTime.now(), ex.getMessage(), null));
     }
 
+    //TODO 추후 정리 필요 (중복 로직)
     // 404 NOT_FOUND 에러 처리
     @ExceptionHandler(NoHandlerFoundException.class)
     protected ResponseEntity<BaseResponse<String>> handleNotFoundException(NoHandlerFoundException ex) {
