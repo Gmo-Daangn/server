@@ -1,34 +1,35 @@
-package com.ktcloud.daangn.post.ntt;
+package com.ktcloud.daangn.post.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "posts")
 @Getter
-@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Post {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long postId;
+    private Long id;
 
     private Long memberId;
-    private String title;
-    private String content;
-    private Integer price;
-    private String location;
-    private String status;
-    private Integer viewCount;
-    private Integer likeCount;
-    private LocalDateTime createdAt;
-    private String thumbnailUrl;
+    private String title;    // 제목
 
-    public Post() {
-    }
+    @Column(columnDefinition = "TEXT")
+    private String content;  // 내용
 
+    private Integer price;   // 가격
+    private String location; // 지역
+    private String status;   // 상태
+    private Integer viewCount; // 조회수
+    private String thumbnailUrl; // 이미지 주소
+    private LocalDateTime createdAt; // 작성 시간
+
+    // 생성자
     public Post(Long memberId, String title, String content, Integer price, String location, String thumbnailUrl) {
         this.memberId = memberId;
         this.title = title;
@@ -38,7 +39,6 @@ public class Post {
         this.thumbnailUrl = thumbnailUrl;
         this.status = "판매중";
         this.viewCount = 0;
-        this.likeCount = 0;
         this.createdAt = LocalDateTime.now();
     }
 }

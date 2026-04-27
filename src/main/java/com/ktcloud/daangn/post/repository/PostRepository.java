@@ -1,6 +1,6 @@
 package com.ktcloud.daangn.post.repository;
 
-import com.ktcloud.daangn.post.ntt.Post;
+import com.ktcloud.daangn.post.entity.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
