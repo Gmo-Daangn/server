@@ -24,11 +24,11 @@ public class MemberServiceImpl implements MemberService{
     @Override
     @Transactional
     public String signup(MemberSignupRequestDto dto) {
-        memberRepository.findByEmail(dto.email())
-                .ifPresent( m -> {
-                    throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "중복된 이메일입니다.");
-                });
-        Member savedMember = memberRepository.save(dto.toMember(encoder));
+        if (memberRepository.existsByEmail(dto.email())) {
+            throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "중복된 이메일입니다.");
+        }
+        String encodePassword = encoder.encode(dto.password());
+        Member savedMember = memberRepository.save(dto.toMember(encodePassword));
 
         return "회원가입 성공 ID : "+savedMember.getId() ;
     }

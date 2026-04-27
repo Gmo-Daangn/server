@@ -1,6 +1,7 @@
 package com.ktcloud.daangn.member.service;
 
 import com.ktcloud.daangn.config.exception.InvalidInputException;
+import com.ktcloud.daangn.config.valueObject.Address;
 import com.ktcloud.daangn.member.dto.MemberLoginRequestDto;
 import com.ktcloud.daangn.member.dto.MemberSignupRequestDto;
 import com.ktcloud.daangn.member.entity.Member;
@@ -12,14 +13,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
@@ -39,11 +38,14 @@ class MemberServiceUnitTest {
     @Nested
     @DisplayName("회원가입")
     class signup {
+
+        private  final Address address = new Address("서울시","동작구","사당동");
+
         @Test
         @DisplayName("[HAPPY] 회원가입이 정상적으로 작동한다.")
         public void signup_validRequest_success(){
             //given
-            MemberSignupRequestDto dto = new MemberSignupRequestDto("test@test.com", "이름", "password", "서울시");
+            MemberSignupRequestDto dto = new MemberSignupRequestDto("test@test.com", "이름", "password", address);
 
             Member savedMember = Member.builder()
                     .id(1L)
@@ -63,14 +65,9 @@ class MemberServiceUnitTest {
         @DisplayName("[Exception] 중복된 이메일로 회원가입하면 예외처리가 정상작동한다.")
         public void signup_DuplicateEmail_ExceptionThrown(){
             //given
-            MemberSignupRequestDto dto = new MemberSignupRequestDto("test@test.com", "이름", "password", "서울시");
+            MemberSignupRequestDto dto = new MemberSignupRequestDto("test@test.com", "이름", "password", address);
 
-            Member savedMember = Member.builder()
-                    .id(1L)
-                    .email(dto.email())
-                    .build();
-
-            given(memberRepository.findByEmail(dto.email())).willReturn(Optional.of(savedMember));
+            given(memberRepository.existsByEmail(dto.email())).willReturn(true);
             //when & then
             assertThatThrownBy(() -> memberService.signup(dto))
                     .isInstanceOf(InvalidInputException.class)
