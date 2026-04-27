@@ -22,10 +22,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Import(TestContainerConfig.class)
 @ActiveProfiles("test")
 @Transactional
-class MemberServiceIntegrationTest {
+class AuthServiceIntegrationTest {
 
     @Autowired
-    private MemberService memberService;
+    private AuthService authService;
 
     private  final Address address = new Address("서울시","동작구","사당동");
 
@@ -39,7 +39,7 @@ class MemberServiceIntegrationTest {
                     "test@test.com", "nickname", "password", address
             );
 
-            String message = memberService.signup(dto);
+            String message = authService.signup(dto);
 
             assertThat(message).contains("회원가입 성공");
         }
@@ -50,9 +50,9 @@ class MemberServiceIntegrationTest {
             //given
             MemberSignupRequestDto dto = new MemberSignupRequestDto("test@test.com", "이름", "password", address);
             //when
-            memberService.signup(dto);
+            authService.signup(dto);
             //then
-            assertThatThrownBy(() -> memberService.signup(dto))
+            assertThatThrownBy(() -> authService.signup(dto))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("중복된 이메일입니다.");
         }
@@ -66,12 +66,12 @@ class MemberServiceIntegrationTest {
         public void login_validRequest_Success(){
             //given
             MemberSignupRequestDto signupDto = new MemberSignupRequestDto("test@test.com", "이름", "password", address);
-            memberService.signup(signupDto);
+            authService.signup(signupDto);
 
             MemberLoginRequestDto loginDto = new MemberLoginRequestDto(signupDto.email(), signupDto.password());
 
             //when
-            String message = memberService.login(loginDto);
+            String message = authService.login(loginDto);
 
             //then
             assertThat(message).contains("회원 아이디 ID");
@@ -83,7 +83,7 @@ class MemberServiceIntegrationTest {
             //given
             MemberLoginRequestDto dto = new MemberLoginRequestDto("test@test.com", "password");
             //when & then
-            assertThatThrownBy( () -> memberService.login(dto))
+            assertThatThrownBy( () -> authService.login(dto))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("이메일 혹은 비밀번호 오류입니다.");
         }
@@ -93,12 +93,12 @@ class MemberServiceIntegrationTest {
         public void login_WrongPassword_ExceptionThrown(){
             //given
             MemberSignupRequestDto signupDto = new MemberSignupRequestDto("test@test.com", "이름", "password", address);
-            memberService.signup(signupDto);
+            authService.signup(signupDto);
 
             MemberLoginRequestDto loginDto = new MemberLoginRequestDto(signupDto.email(), "wrongPassword");
 
             //when & then
-            assertThatThrownBy(() -> memberService.login(loginDto))
+            assertThatThrownBy(() -> authService.login(loginDto))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("이메일 혹은 비밀번호 오류입니다.");
         }

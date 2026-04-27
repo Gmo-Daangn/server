@@ -24,7 +24,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class MemberServiceUnitTest {
+class AuthServiceUnitTest {
 
     @Mock
     MemberDBRepository memberRepository;
@@ -33,7 +33,7 @@ class MemberServiceUnitTest {
     PasswordEncoder encoder;
 
     @InjectMocks
-    MemberServiceImpl memberService;
+    AuthServiceImpl memberService;
 
     @Nested
     @DisplayName("회원가입")
