@@ -1,11 +1,12 @@
 package com.ktcloud.daangn.post.controller;
 
 import com.ktcloud.daangn.config.dto.BaseResponse;
-import com.ktcloud.daangn.post.entity.Post;
+import com.ktcloud.daangn.post.dto.PostCreateResponse;
+import com.ktcloud.daangn.post.dto.PostRequest;
+import com.ktcloud.daangn.post.dto.PostResponse;
 import com.ktcloud.daangn.post.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -15,27 +16,18 @@ public class PostController {
 
     private final PostService postService;
 
-    // 1. 상품 등록 API
     @PostMapping
-    public BaseResponse<Long> create(@RequestBody Post post) {
-
-        Long id = postService.createPost(post);
-        return BaseResponse.success(id);
+    public BaseResponse<PostCreateResponse> create(@RequestBody PostRequest request) {
+        return BaseResponse.success(postService.createPost(request));
     }
 
-    // 2. 전체 상품 목록 조회 API
     @GetMapping
-    public BaseResponse<List<Post>> list() {
-
-        List<Post> posts = postService.getAllPosts();
-        return BaseResponse.success(posts);
+    public BaseResponse<List<PostResponse>> list() {
+        return BaseResponse.success(postService.getAllPosts());
     }
 
-    // 3. 특정 상품 상세 조회 API
     @GetMapping("/{id}")
-    public BaseResponse<Post> detail(@PathVariable Long id) {
-
-        Post post = postService.getPostById(id);
-        return BaseResponse.success(post);
+    public BaseResponse<PostResponse> detail(@PathVariable Long id) {
+        return BaseResponse.success(postService.getPostById(id));
     }
 }

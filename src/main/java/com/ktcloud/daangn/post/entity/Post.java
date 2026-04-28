@@ -17,26 +17,23 @@ public class Post {
     private Long id;
 
     private Long memberId;
-    private String title;    // 제목
+    private String title;
 
     @Column(columnDefinition = "TEXT")
-    private String content;  // 내용
+    private String content;
 
-    private Integer price;   // 가격
-    private String location; // 지역
-    private String status;   // 상태
-    private Integer viewCount; // 조회수
-    private String thumbnailUrl; // 이미지 주소
-    private LocalDateTime createdAt; // 작성 시간
+    private Integer price;
+    private String location;
+    private String status;
+    private Integer viewCount;
+    private LocalDateTime createdAt;
 
-    // 생성자
-    public Post(Long memberId, String title, String content, Integer price, String location, String thumbnailUrl) {
+    public Post(Long memberId, String title, String content, Integer price, String location) {
         this.memberId = memberId;
         this.title = title;
         this.content = content;
         this.price = price;
         this.location = location;
-        this.thumbnailUrl = thumbnailUrl;
         this.status = "판매중";
         this.viewCount = 0;
         this.createdAt = LocalDateTime.now();
