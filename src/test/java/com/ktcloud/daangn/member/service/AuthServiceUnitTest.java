@@ -37,7 +37,7 @@ class AuthServiceUnitTest {
 
     @Nested
     @DisplayName("회원가입")
-    class signup {
+    class Signup {
 
         private  final Address address = new Address("서울시","동작구","사당동");
 
@@ -77,7 +77,7 @@ class AuthServiceUnitTest {
 
     @Nested
     @DisplayName("로그인")
-    class login {
+    class Login {
         @Test
         @DisplayName("[HAPPY] 로그인이 정상적으로 진행된다.")
         public void login_validRequest_Success(){

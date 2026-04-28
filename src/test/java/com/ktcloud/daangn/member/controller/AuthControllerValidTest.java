@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 class AuthControllerValidTest {
 
     @Nested
-    class signup{
+    class Signup{
 
         @Test
         @DisplayName("회원 가입 검증 실패")

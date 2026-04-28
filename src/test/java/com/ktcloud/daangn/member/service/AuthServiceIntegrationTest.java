@@ -30,6 +30,7 @@ class AuthServiceIntegrationTest {
     private  final Address address = new Address("서울시","동작구","사당동");
 
     @Nested
+    @DisplayName("회원가입")
     class Signup {
 
         @Test
@@ -59,6 +60,7 @@ class AuthServiceIntegrationTest {
     }
 
     @Nested
+    @DisplayName("로그인")
     class Login {
 
         @Test
