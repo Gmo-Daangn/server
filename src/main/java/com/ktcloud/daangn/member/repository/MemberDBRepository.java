@@ -29,8 +29,8 @@ public class MemberDBRepository implements MemberRepository {
     }
 
     @Override
-    public Member findById(Long id) {
-        return em.find(Member.class, id);
+    public Optional<Member> findById(Long id) {
+        return Optional.ofNullable(em.find(Member.class, id));
     }
 
     @Override
