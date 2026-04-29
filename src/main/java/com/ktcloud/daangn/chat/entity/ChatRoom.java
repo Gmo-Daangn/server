@@ -19,6 +19,7 @@ public class ChatRoom {
     private Long productId;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private ChatType type;
 
     @Column(nullable = false)
@@ -37,4 +38,5 @@ public class ChatRoom {
                 .type(type)
                 .build();
     }
+
 }

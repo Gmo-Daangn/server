@@ -1,6 +1,15 @@
 package com.ktcloud.daangn.chat.dto;
 
+import java.time.LocalDateTime;
+
 public record ChatMessageResponseDto(
-        String message
+        Long messageId,
+        Long roomId,
+        String senderEmail,
+        String message,
+        boolean edited,
+        boolean deleted,
+        long unreadCount,
+        LocalDateTime createdAt
 ) {
 }

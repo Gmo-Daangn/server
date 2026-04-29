@@ -19,37 +19,67 @@ public class ChatMessage {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "room_id")
+    @JoinColumn(name = "room_id", nullable = false)
     private ChatRoom chatRoom;
 
     @ManyToOne
-    @JoinColumn(name = "member_id")
+    @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
+    @Column(nullable = false)
     private String message;
 
-    private Long readCount;
+    @Column(nullable = false)
+    private long readCount;
 
-    private boolean isEdit;
+    @Column(nullable = false)
+    private boolean edited;
 
+    @Column(nullable = false)
+    private boolean deleted;
+
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    public ChatMessage(ChatRoom chatRoom, Member member, String message, Long readCount) {
+    public ChatMessage(ChatRoom chatRoom, Member member, String message, long readCount) {
         this.chatRoom = chatRoom;
         this.member = member;
         this.message = message;
         this.readCount = readCount;
-        this.isEdit = false;
+        this.edited = false;
+        this.deleted = false;
         this.createdAt = LocalDateTime.now();
     }
 
-    public static ChatMessage createMessage(ChatRoom chatRoom, Member member, String message, Long readCount) {
+    public static ChatMessage createMessage(ChatRoom chatRoom, Member member, String message, long readCount) {
         return ChatMessage.builder()
                 .chatRoom(chatRoom)
                 .member(member)
                 .message(message)
                 .readCount(readCount)
                 .build();
+    }
+
+    public void edit(String message) {
+        this.message = message;
+        this.edited = true;
+    }
+
+    public void delete() {
+        this.message = "삭제된 메시지입니다.";
+        this.deleted = true;
+    }
+
+    public void markRead() {
+        this.readCount = 0;
+    }
+
+    public boolean isWrittenBy(String memberEmail) {
+        return this.member.getEmail().equals(memberEmail);
+    }
+
+    public boolean isDeletedMessage() {
+        return this.deleted;
     }
 }

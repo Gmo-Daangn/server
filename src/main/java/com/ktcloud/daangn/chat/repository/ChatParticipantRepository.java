@@ -5,9 +5,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ChatParticipantRepository extends JpaRepository<ChatParticipant, Long> {
 
-    public List<ChatParticipant> findByMemberId(Long memberId);
+    List<ChatParticipant> findByMember_Email(String memberEmail);
+
+    List<ChatParticipant> findByChatRoom_Id(Long roomId);
+
+    Optional<ChatParticipant> findByChatRoom_IdAndMember_Email(Long roomId, String memberEmail);
+
+    long countByChatRoom_Id(Long roomId);
 }

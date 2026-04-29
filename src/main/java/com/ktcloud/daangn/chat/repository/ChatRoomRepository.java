@@ -1,10 +1,16 @@
 package com.ktcloud.daangn.chat.repository;
 
 import com.ktcloud.daangn.chat.entity.ChatRoom;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import com.ktcloud.daangn.chat.entity.ChatType;
 
-@Repository
-public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
+import java.util.List;
+import java.util.Optional;
 
+public interface ChatRoomRepository {
+
+    ChatRoom save(ChatRoom chatRoom);
+
+    Optional<ChatRoom> findById(Long roomId);
+
+    List<ChatRoom> findExistingDirectRoom(String memberEmail, String targetMemberEmail, Long productId, ChatType type);
 }

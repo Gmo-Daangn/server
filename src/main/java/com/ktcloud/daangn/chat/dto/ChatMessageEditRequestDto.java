@@ -1,6 +1,6 @@
 package com.ktcloud.daangn.chat.dto;
 
-public record ChatMessageRequestDto(
+public record ChatMessageEditRequestDto(
         String memberEmail,
         String message
 ) {
