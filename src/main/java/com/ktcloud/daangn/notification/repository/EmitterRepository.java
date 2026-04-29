@@ -4,9 +4,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 public interface EmitterRepository {
 
-    SseEmitter save(Long memberId, SseEmitter emitter);
+    SseEmitter save(Long receiverId, SseEmitter emitter);
 
-    void deleteById(Long memberId);
+    void deleteById(Long receiverId);
 
-    SseEmitter get(Long memberId);
+    SseEmitter get(Long receiverId);
 }

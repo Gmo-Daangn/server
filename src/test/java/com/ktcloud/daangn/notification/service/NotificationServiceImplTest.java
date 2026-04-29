@@ -57,8 +57,8 @@ class NotificationServiceImplTest {
         existingMember = Member.builder().id(MEMBER_ID).email("a@b.com").build();
     }
 
-    private void givenExistingMember(Long memberId) {
-        given(memberRepository.findById(memberId)).willReturn(Optional.of(existingMember));
+    private void givenExistingMember(Long receiverId) {
+        given(memberRepository.findById(receiverId)).willReturn(Optional.of(existingMember));
     }
 
     private NotificationTemplate buildTemplate(String type, String text) {
@@ -114,7 +114,7 @@ class NotificationServiceImplTest {
             givenExistingMember(MEMBER_ID);
             NotificationTemplate template = stubTemplateRepository("ORDER", "안녕 {templateText}");
             Notification saved = Notification.builder()
-                    .memberId(MEMBER_ID)
+                    .receiverId(MEMBER_ID)
                     .template(template)
                     .message("안녕 주문완료")
                     .build();
@@ -126,7 +126,7 @@ class NotificationServiceImplTest {
             ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
             verify(notificationRepository).save(captor.capture());
             Notification captured = captor.getValue();
-            assertThat(captured.getMemberId()).isEqualTo(MEMBER_ID);
+            assertThat(captured.getReceiverId()).isEqualTo(MEMBER_ID);
             assertThat(captured.getTemplate()).isEqualTo(template);
             assertThat(captured.getMessage()).isEqualTo("안녕 주문완료");
             verify(emitterRepository).get(MEMBER_ID);
@@ -169,21 +169,21 @@ class NotificationServiceImplTest {
             NotificationTemplate template = buildTemplate("TYPE_A", "{templateText}");
             LocalDateTime created = LocalDateTime.of(2026, 1, 1, 12, 0);
             Notification notification = Notification.builder()
-                    .memberId(MEMBER_ID)
+                    .receiverId(MEMBER_ID)
                     .template(template)
                     .message("msg")
                     .build();
             ReflectionTestUtils.setField(notification, "id", 100L);
             ReflectionTestUtils.setField(notification, "createdAt", created);
 
-            given(notificationRepository.findActiveByMemberId(MEMBER_ID)).willReturn(List.of(notification));
+            given(notificationRepository.findActiveByReceiverId(MEMBER_ID)).willReturn(List.of(notification));
 
             List<NotificationResponseDto> result = notificationService.getNotifications(MEMBER_ID);
 
             assertThat(result).hasSize(1);
             NotificationResponseDto dto = result.getFirst();
             assertThat(dto.id()).isEqualTo(100L);
-            assertThat(dto.memberId()).isEqualTo(MEMBER_ID);
+            assertThat(dto.receiverId()).isEqualTo(MEMBER_ID);
             assertThat(dto.templateType()).isEqualTo("TYPE_A");
             assertThat(dto.message()).isEqualTo("msg");
             assertThat(dto.isRead()).isFalse();
@@ -204,7 +204,7 @@ class NotificationServiceImplTest {
 
     private static Notification storedNotification(Long id, NotificationTemplate template) {
         Notification n = Notification.builder()
-                .memberId(MEMBER_ID)
+                .receiverId(MEMBER_ID)
                 .template(template)
                 .message("m")
                 .build();

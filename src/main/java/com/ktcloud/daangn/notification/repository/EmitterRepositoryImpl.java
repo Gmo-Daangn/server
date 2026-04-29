@@ -12,18 +12,18 @@ public class EmitterRepositoryImpl implements EmitterRepository {
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     @Override
-    public SseEmitter save(Long memberId, SseEmitter emitter) {
-        emitters.put(memberId, emitter);
+    public SseEmitter save(Long receiverId, SseEmitter emitter) {
+        emitters.put(receiverId, emitter);
         return emitter;
     }
 
     @Override
-    public void deleteById(Long memberId) {
-        emitters.remove(memberId);
+    public void deleteById(Long receiverId) {
+        emitters.remove(receiverId);
     }
 
     @Override
-    public SseEmitter get(Long memberId) {
-        return emitters.get(memberId);
+    public SseEmitter get(Long receiverId) {
+        return emitters.get(receiverId);
     }
 }
