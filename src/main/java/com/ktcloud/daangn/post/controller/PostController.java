@@ -1,13 +1,15 @@
 package com.ktcloud.daangn.post.controller;
 
 import com.ktcloud.daangn.config.dto.BaseResponse;
-import com.ktcloud.daangn.post.dto.PostCreateResponse;
-import com.ktcloud.daangn.post.dto.PostRequest;
-import com.ktcloud.daangn.post.dto.PostResponse;
+import com.ktcloud.daangn.post.dto.*;
 import com.ktcloud.daangn.post.service.PostService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/posts")
@@ -17,17 +19,21 @@ public class PostController {
     private final PostService postService;
 
     @PostMapping
-    public BaseResponse<PostCreateResponse> create(@RequestBody PostRequest request) {
+    public BaseResponse<PostCreateResponse> createPost(
+            @Valid @RequestBody PostRequest request) {
         return BaseResponse.success(postService.createPost(request));
     }
 
     @GetMapping
-    public BaseResponse<List<PostResponse>> list() {
-        return BaseResponse.success(postService.getAllPosts());
+    public BaseResponse<PostPageResponse> getPostList(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return BaseResponse.success(postService.getPostList(pageable));
     }
 
-    @GetMapping("/{id}")
-    public BaseResponse<PostResponse> detail(@PathVariable Long id) {
-        return BaseResponse.success(postService.getPostById(id));
+    @GetMapping("/{postId}")
+    public BaseResponse<PostDetailResponse> getPostDetail(
+            @PathVariable Long postId) {
+        return BaseResponse.success(postService.getPostDetail(postId));
     }
 }

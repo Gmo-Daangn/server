@@ -1,15 +1,15 @@
 package com.ktcloud.daangn.post.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "posts")
 @Getter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Post {
 
     @Id
@@ -37,5 +37,9 @@ public class Post {
         this.status = "판매중";
         this.viewCount = 0;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public void increaseViewCount() {
+        this.viewCount++;
     }
 }

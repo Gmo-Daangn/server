@@ -2,17 +2,14 @@ package com.ktcloud.daangn.post.service;
 
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.repository.MemberRepository;
-import com.ktcloud.daangn.post.dto.PostCreateResponse;
-import com.ktcloud.daangn.post.dto.PostRequest;
-import com.ktcloud.daangn.post.dto.PostResponse;
+import com.ktcloud.daangn.post.dto.*;
 import com.ktcloud.daangn.post.entity.Post;
 import com.ktcloud.daangn.post.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +23,7 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public PostCreateResponse createPost(PostRequest request) {
         Member member = memberRepository.findById(request.memberId())
-                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
         Post post = new Post(
                 member.getId(),
@@ -40,32 +37,50 @@ public class PostServiceImpl implements PostService {
 
         return new PostCreateResponse(
                 savedPost.getId(),
-                member.getId(),
-                "게시글이 성공적으로 등록되었습니다."
+                "게시글 등록 성공 (ID: " + savedPost.getId() + ")"
         );
     }
 
     @Override
-    public List<PostResponse> getAllPosts() {
-        return postRepository.findAll().stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+    public PostPageResponse getPostList(Pageable pageable) {
+        Page<Post> page = postRepository.findAll(pageable);
+
+        return new PostPageResponse(
+                page.getContent().stream()
+                        .map(post -> new PostListResponse(
+                                post.getId(),
+                                post.getTitle(),
+                                post.getPrice(),
+                                post.getLocation(),
+                                post.getViewCount(),
+                                post.getCreatedAt()
+                        ))
+                        .toList(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages()
+        );
     }
 
     @Override
-    public PostResponse getPostById(Long id) {
-        return postRepository.findById(id)
-                .map(this::convertToResponse)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
-    }
+    public PostDetailResponse getPostDetail(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
 
-    private PostResponse convertToResponse(Post post) {
-        return new PostResponse(
+        Member member = memberRepository.findById(post.getMemberId())
+                .orElseThrow(() -> new IllegalArgumentException("작성자 정보를 찾을 수 없습니다."));
+
+        post.increaseViewCount();
+
+        return new PostDetailResponse(
                 post.getId(),
+                member.getNickName(),
                 post.getTitle(),
                 post.getContent(),
                 post.getPrice(),
                 post.getLocation(),
+                post.getStatus(),
                 post.getViewCount(),
                 post.getCreatedAt()
         );
