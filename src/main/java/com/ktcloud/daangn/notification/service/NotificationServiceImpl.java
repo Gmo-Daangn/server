@@ -1,5 +1,6 @@
 package com.ktcloud.daangn.notification.service;
 
+import com.ktcloud.daangn.member.repository.MemberRepository;
 import com.ktcloud.daangn.notification.dto.NotificationResponseDto;
 import com.ktcloud.daangn.notification.entity.Notification;
 import com.ktcloud.daangn.notification.entity.NotificationTemplate;
@@ -26,10 +27,12 @@ public class NotificationServiceImpl implements NotificationService {
     private final EmitterRepository emitterRepository;
     private final NotificationRepository notificationRepository;
     private final NotificationTemplateRepository templateRepository;
+    private final MemberRepository memberRepository;
 
     // SSE 구독 요청 처리
     @Override
     public SseEmitter subscribe(Long memberId) {
+        requireMember(memberId);
         SseEmitter emitter = new SseEmitter(DEFAULT_TIMEOUT);
         emitterRepository.save(memberId, emitter);
 
@@ -45,20 +48,21 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void createAndSendNotification(NotificationEvent event) {
+        requireMember(event.memberId());
         NotificationTemplate template = templateRepository.findByTemplateType(event.templateType())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 알림 템플릿입니다: " + event.templateType()));
 
         String finalMessage = template.getTemplateText().replace("{dynamic}", event.templateText());
 
         Notification notification = Notification.builder()
-                .receiverId(event.receiverId())
+                .memberId(event.memberId())
                 .template(template)
                 .message(finalMessage)
                 .build();
 
         notificationRepository.save(notification);
 
-        sendToClient(event.receiverId(), finalMessage);
+        sendToClient(event.memberId(), finalMessage);
     }
 
     private void sendToClient(Long memberId, Object data) {
@@ -79,8 +83,9 @@ public class NotificationServiceImpl implements NotificationService {
     // 알림 목록 조회
     @Override
     @Transactional(readOnly = true)
-    public List<NotificationResponseDto> getNotifications(Long receiverId) {
-        return notificationRepository.findActiveByReceiverId(receiverId)
+    public List<NotificationResponseDto> getNotifications(Long memberId) {
+        requireMember(memberId);
+        return notificationRepository.findActiveByMemberId(memberId)
                 .stream()
                 .map(NotificationResponseDto::from)
                 .collect(Collectors.toList());
@@ -104,5 +109,10 @@ public class NotificationServiceImpl implements NotificationService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 알림입니다."));
         notification.markAsRead();
         return "알림 읽음 처리 성공";
+    }
+
+    private void requireMember(Long memberId) {
+        memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + memberId));
     }
 }

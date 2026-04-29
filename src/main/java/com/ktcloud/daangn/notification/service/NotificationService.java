@@ -11,7 +11,7 @@ public interface NotificationService {
 
     void createAndSendNotification(NotificationEvent event);
 
-    List<NotificationResponseDto> getNotifications(Long receiverId);
+    List<NotificationResponseDto> getNotifications(Long memberId);
 
     String deleteNotification(Long id);
 
