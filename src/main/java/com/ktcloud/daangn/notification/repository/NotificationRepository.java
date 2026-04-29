@@ -8,6 +8,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
-    @Query("select n from Notification n where n.receiverId = :receiverId and n.isDeleted = false order by n.createdAt desc")
-    List<Notification> findActiveByReceiverId(@Param("receiverId") Long receiverId);
+    @Query("select n from Notification n where n.memberId = :memberId and n.isDeleted = false order by n.createdAt desc")
+    List<Notification> findActiveByMemberId(@Param("memberId") Long memberId);
 }

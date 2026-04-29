@@ -1,7 +1,7 @@
 package com.ktcloud.daangn.notification.event;
 
 public record NotificationEvent(
-        Long receiverId,
+        Long memberId,
         String templateType,
         Long identifier,
         String templateText
