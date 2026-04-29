@@ -20,8 +20,8 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "receiver_id", nullable = false)
-    private Long memberId;
+    @Column(nullable = false)
+    private Long receiverId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
@@ -36,8 +36,8 @@ public class Notification {
     private LocalDateTime createdAt;
 
     @Builder
-    public Notification(Long memberId, NotificationTemplate template, String message) {
-        this.memberId = memberId;
+    public Notification(Long receiverId, NotificationTemplate template, String message) {
+        this.receiverId = receiverId;
         this.template = template;
         this.message = message;
         this.isRead = false;

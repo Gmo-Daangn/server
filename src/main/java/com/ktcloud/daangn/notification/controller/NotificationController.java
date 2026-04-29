@@ -19,14 +19,14 @@ public class NotificationController {
 
 
     @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter subscribe(@RequestParam("memberId") Long memberId) {
-        return notificationService.subscribe(memberId);
+    public SseEmitter subscribe(@RequestParam("memberId") Long receiverId) {
+        return notificationService.subscribe(receiverId);
     }
 
     // 알림 목록 조회
     @GetMapping
-    public BaseResponse<List<NotificationResponseDto>> getNotifications(@RequestParam("memberId") Long memberId) {
-        return BaseResponse.success(notificationService.getNotifications(memberId));
+    public BaseResponse<List<NotificationResponseDto>> getNotifications(@RequestParam("memberId") Long receiverId) {
+        return BaseResponse.success(notificationService.getNotifications(receiverId));
     }
 
     // 알림 삭제

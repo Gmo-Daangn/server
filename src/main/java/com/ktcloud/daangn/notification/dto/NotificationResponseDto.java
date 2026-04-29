@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 public record NotificationResponseDto(
         Long id,
-        Long memberId,
+        Long receiverId,
         String templateType,
         String templateTitle,
         Long identifier,
@@ -17,7 +17,7 @@ public record NotificationResponseDto(
     public static NotificationResponseDto from(Notification notification) {
         return new NotificationResponseDto(
                 notification.getId(),
-                notification.getMemberId(),
+                notification.getReceiverId(),
                 notification.getTemplate().getTemplateType(),
                 notification.getTemplate().getTemplateTitle(),
                 notification.getTemplate().getIdentifier(),

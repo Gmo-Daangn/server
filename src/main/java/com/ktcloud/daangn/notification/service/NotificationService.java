@@ -7,11 +7,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
 public interface NotificationService {
 
-    SseEmitter subscribe(Long memberId);
+    SseEmitter subscribe(Long receiverId);
 
     void createAndSendNotification(NotificationEvent event);
 
-    List<NotificationResponseDto> getNotifications(Long memberId);
+    List<NotificationResponseDto> getNotifications(Long receiverId);
 
     String deleteNotification(Long id);
 

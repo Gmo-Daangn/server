@@ -31,15 +31,15 @@ public class NotificationServiceImpl implements NotificationService {
 
     // SSE 구독 요청 처리
     @Override
-    public SseEmitter subscribe(Long memberId) {
-        requireMember(memberId);
+    public SseEmitter subscribe(Long receiverId) {
+        requireMember(receiverId);
         SseEmitter emitter = new SseEmitter(DEFAULT_TIMEOUT);
-        emitterRepository.save(memberId, emitter);
+        emitterRepository.save(receiverId, emitter);
 
-        emitter.onCompletion(() -> emitterRepository.deleteById(memberId));
-        emitter.onTimeout(() -> emitterRepository.deleteById(memberId));
+        emitter.onCompletion(() -> emitterRepository.deleteById(receiverId));
+        emitter.onTimeout(() -> emitterRepository.deleteById(receiverId));
 
-        sendToClient(memberId, "SSE 연결 성공 [memberId=" + memberId + "]");
+        sendToClient(receiverId, "SSE 연결 성공 [receiverId=" + receiverId + "]");
 
         return emitter;
     }
@@ -48,25 +48,25 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void createAndSendNotification(NotificationEvent event) {
-        requireMember(event.memberId());
+        requireMember(event.receiverId());
         NotificationTemplate template = templateRepository.findByTemplateType(event.templateType())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 알림 템플릿입니다: " + event.templateType()));
 
         String finalMessage = template.getTemplateText().replace("{templateText}", event.templateText());
 
         Notification notification = Notification.builder()
-                .memberId(event.memberId())
+                .receiverId(event.receiverId())
                 .template(template)
                 .message(finalMessage)
                 .build();
 
         notificationRepository.save(notification);
 
-        sendToClient(event.memberId(), finalMessage);
+        sendToClient(event.receiverId(), finalMessage);
     }
 
-    private void sendToClient(Long memberId, Object data) {
-        SseEmitter emitter = emitterRepository.get(memberId);
+    private void sendToClient(Long receiverId, Object data) {
+        SseEmitter emitter = emitterRepository.get(receiverId);
         if (emitter != null) {
             try {
                 emitter.send(SseEmitter.event()
@@ -74,8 +74,8 @@ public class NotificationServiceImpl implements NotificationService {
                         .name("notification")
                         .data(data));
             } catch (IOException exception) {
-                emitterRepository.deleteById(memberId);
-                log.error("SSE 전송 실패로 인한 연결 삭제: {}", memberId);
+                emitterRepository.deleteById(receiverId);
+                log.error("SSE 전송 실패로 인한 연결 삭제: {}", receiverId);
             }
         }
     }
@@ -83,9 +83,9 @@ public class NotificationServiceImpl implements NotificationService {
     // 알림 목록 조회
     @Override
     @Transactional(readOnly = true)
-    public List<NotificationResponseDto> getNotifications(Long memberId) {
-        requireMember(memberId);
-        return notificationRepository.findActiveByMemberId(memberId)
+    public List<NotificationResponseDto> getNotifications(Long receiverId) {
+        requireMember(receiverId);
+        return notificationRepository.findActiveByReceiverId(receiverId)
                 .stream()
                 .map(NotificationResponseDto::from)
                 .collect(Collectors.toList());
@@ -111,8 +111,8 @@ public class NotificationServiceImpl implements NotificationService {
         return "알림 읽음 처리 성공";
     }
 
-    private void requireMember(Long memberId) {
-        memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + memberId));
+    private void requireMember(Long receiverId) {
+        memberRepository.findById(receiverId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + receiverId));
     }
 }
