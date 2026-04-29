@@ -17,6 +17,11 @@ repositories {
 	mavenCentral()
 }
 
+// JDK 21+ 동적 에이전트 제한 대비: 인라인 목은 mockito-core를 명시적 javaagent로 로드 (Mockito 문서 0.3)
+configurations {
+	mockitoAgent
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -50,8 +55,14 @@ dependencies {
 	testImplementation platform('org.testcontainers:testcontainers-bom:2.0.4')
 	testImplementation 'org.testcontainers:mysql:1.21.4'
 	testImplementation 'org.testcontainers:junit-jupiter:1.21.4'
+
+	mockitoAgent('org.mockito:mockito-core') {
+		transitive = false
+	}
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// 기존 jvmArgs(예: JaCoCo)를 덮어쓰지 않도록 append
+	jvmArgs += "-javaagent:${configurations.mockitoAgent.asPath}"
 }

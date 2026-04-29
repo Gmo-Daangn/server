@@ -52,7 +52,7 @@ public class NotificationServiceImpl implements NotificationService {
         NotificationTemplate template = templateRepository.findByTemplateType(event.templateType())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 알림 템플릿입니다: " + event.templateType()));
 
-        String finalMessage = template.getTemplateText().replace("{dynamic}", event.templateText());
+        String finalMessage = template.getTemplateText().replace("{templateText}", event.templateText());
 
         Notification notification = Notification.builder()
                 .memberId(event.memberId())
