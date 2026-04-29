@@ -1,9 +1,9 @@
-package com.ktcloud.daangn.member.dto;
+package com.ktcloud.daangn.auth.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-public record MemberLoginRequestDto(
+public record AuthLoginRequestDto(
 
         @NotBlank
         @Email
