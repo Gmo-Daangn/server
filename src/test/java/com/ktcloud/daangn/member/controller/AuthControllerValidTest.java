@@ -1,0 +1,22 @@
+package com.ktcloud.daangn.member.controller;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+class AuthControllerValidTest {
+
+    @Nested
+    class Signup{
+
+        @Test
+        @DisplayName("회원 가입 검증 실패")
+        public void signup_validRequest_success(){
+            //given
+
+            //when
+
+            //then
+        }
+    }
+}

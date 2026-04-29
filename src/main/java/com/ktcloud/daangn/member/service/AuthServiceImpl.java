@@ -1,6 +1,5 @@
 package com.ktcloud.daangn.member.service;
 
-import com.ktcloud.daangn.config.dto.BaseResponse;
 import com.ktcloud.daangn.config.exception.InvalidInputException;
 import com.ktcloud.daangn.member.dto.MemberLoginRequestDto;
 import com.ktcloud.daangn.member.dto.MemberSignupRequestDto;
@@ -17,7 +16,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class MemberServiceImpl implements MemberService{
+public class AuthServiceImpl implements AuthService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder encoder;
@@ -25,11 +24,11 @@ public class MemberServiceImpl implements MemberService{
     @Override
     @Transactional
     public String signup(MemberSignupRequestDto dto) {
-        memberRepository.findByEmail(dto.email())
-                .ifPresent( m -> {
-                    throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "중복된 이메일입니다.");
-                });
-        Member savedMember = memberRepository.save(dto.toMember(encoder));
+        if (memberRepository.existsByEmail(dto.email())) {
+            throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "중복된 이메일입니다.");
+        }
+        String encodePassword = encoder.encode(dto.password());
+        Member savedMember = memberRepository.save(dto.toMember(encodePassword));
 
         return "회원가입 성공 ID : "+savedMember.getId() ;
     }
