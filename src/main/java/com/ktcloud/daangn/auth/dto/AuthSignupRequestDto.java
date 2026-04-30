@@ -1,4 +1,4 @@
-package com.ktcloud.daangn.member.dto;
+package com.ktcloud.daangn.auth.dto;
 
 import com.ktcloud.daangn.config.valueObject.Address;
 import com.ktcloud.daangn.member.entity.Member;
@@ -11,7 +11,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 
-public record MemberSignupRequestDto(
+public record AuthSignupRequestDto(
 
         @NotBlank
         @Email

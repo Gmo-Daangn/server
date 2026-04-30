@@ -1,4 +1,4 @@
-package com.ktcloud.daangn.member.controller;
+package com.ktcloud.daangn.auth.controller;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
