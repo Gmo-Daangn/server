@@ -22,9 +22,4 @@ public class AuthController {
     public BaseResponse<String> signup(@RequestBody @Valid AuthSignupRequestDto dto) {
         return BaseResponse.success(authService.signup(dto));
     }
-
-    @PostMapping("/login")
-    public BaseResponse<String> login(@RequestBody @Valid AuthLoginRequestDto dto) {
-        return BaseResponse.success(authService.login(dto));
-    }
 }
