@@ -62,7 +62,7 @@ class MemberServiceUnitTest {
 
     @Test
     @DisplayName("[HAPPY] 내정보 조회를 성공적으로 진행한다.")
-    public void getMyInfo_Validate_Success() {
+    public void getMyInfo_ValidMember_Success() {
         //given
         Member findMember = Member.builder()
                 .id(1L)
