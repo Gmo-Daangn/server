@@ -1,8 +1,5 @@
 package com.ktcloud.daangn.chat.service;
 
-import com.ktcloud.daangn.chat.dto.ChatMessageDeleteRequestDto;
-import com.ktcloud.daangn.chat.dto.ChatMessageEditRequestDto;
-import com.ktcloud.daangn.chat.dto.ChatMessageRequestDto;
 import com.ktcloud.daangn.chat.dto.ChatMessageResponseDto;
 import com.ktcloud.daangn.chat.entity.ChatMessage;
 import com.ktcloud.daangn.chat.entity.ChatParticipant;
@@ -33,16 +30,15 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     // 메시지 전송 처리
     @Override
     @Transactional
-    public ChatMessageResponseDto create(Long roomId, ChatMessageRequestDto dto) {
-        validateMessage(dto.message());
+    public ChatMessageResponseDto create(Long roomId, String memberEmail, String message) {
         ChatRoom chatRoom = findRoomByIdOrThrow(roomId);
-        Member member = findMemberByEmailOrThrow(dto.memberEmail());
-        findParticipantByRoomIdAndEmailOrThrow(roomId, dto.memberEmail());
+        Member member = findMemberByEmailOrThrow(memberEmail);
+        findParticipantByRoomIdAndEmailOrThrow(roomId, memberEmail);
         long readCount = Math.max(chatParticipantRepository.countByChatRoom_Id(roomId) - 1, 0);
 
-        ChatMessage chatMessage = chatMessageRepository.save(ChatMessage.createMessage(chatRoom, member, dto.message(), readCount));
+        ChatMessage chatMessage = chatMessageRepository.save(ChatMessage.createMessage(chatRoom, member, message, readCount));
 
-        return toResponse(chatMessage);
+        return ChatMessageResponseDto.from(chatMessage);
     }
 
     // 채팅 메시지 목록 조회
@@ -51,31 +47,30 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         findParticipantByRoomIdAndEmailOrThrow(roomId, memberEmail);
 
         return chatMessageRepository.findByChatRoom_IdOrderByIdAsc(roomId).stream()
-                .map(this::toResponse)
+                .map(ChatMessageResponseDto::from)
                 .toList();
     }
 
     // 채팅 메시지 수정
     @Override
     @Transactional
-    public ChatMessageResponseDto edit(Long messageId, ChatMessageEditRequestDto dto) {
+    public ChatMessageResponseDto edit(Long messageId, String memberEmail, String message) {
         ChatMessage chatMessage = findMessageByIdOrThrow(messageId);
-        validateEditable(chatMessage, dto.memberEmail());
-        validateMessage(dto.message());
-        chatMessage.edit(dto.message());
+        validateEditable(chatMessage, memberEmail);
+        chatMessage.edit(message);
 
-        return toResponse(chatMessage);
+        return ChatMessageResponseDto.from(chatMessage);
     }
 
     // 채팅 메시지 삭제
     @Override
     @Transactional
-    public ChatMessageResponseDto delete(Long messageId, ChatMessageDeleteRequestDto dto) {
+    public ChatMessageResponseDto delete(Long messageId, String memberEmail) {
         ChatMessage chatMessage = findMessageByIdOrThrow(messageId);
-        validateEditable(chatMessage, dto.memberEmail());
+        validateEditable(chatMessage, memberEmail);
         chatMessage.delete();
 
-        return toResponse(chatMessage);
+        return ChatMessageResponseDto.from(chatMessage);
     }
 
     private ChatRoom findRoomByIdOrThrow(Long roomId) {
@@ -105,24 +100,5 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         if (chatMessage.isDeletedMessage()) {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "삭제된 메시지는 수정 또는 삭제할 수 없습니다.");
         }
-    }
-
-    private void validateMessage(String message) {
-        if (message == null || message.isBlank()) {
-            throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "메시지는 비어 있을 수 없습니다.");
-        }
-    }
-
-    private ChatMessageResponseDto toResponse(ChatMessage chatMessage) {
-        return new ChatMessageResponseDto(
-                chatMessage.getId(),
-                chatMessage.getChatRoom().getId(),
-                chatMessage.getMember().getEmail(),
-                chatMessage.getMessage(),
-                chatMessage.isEdited(),
-                chatMessage.isDeleted(),
-                chatMessage.getReadCount(),
-                chatMessage.getCreatedAt()
-        );
     }
 }

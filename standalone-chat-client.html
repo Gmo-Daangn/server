@@ -187,6 +187,7 @@
         selectedMemberEmail: null,
         activeRoomId: null,
         messages: [],
+        editingMessageId: null,
         stompClient: null,
         busy: false
       };
@@ -243,10 +244,12 @@
           sessionBox.hidden = false;
           sessionEmail.textContent = state.currentUser.email;
           memberEmailInput.value = state.currentUser.email;
+          memberEmailInput.readOnly = true;
         } else {
           sessionBox.hidden = true;
           sessionEmail.textContent = "";
           memberEmailInput.value = "";
+          memberEmailInput.readOnly = false;
         }
         enterRoomButton.disabled = state.busy || !state.currentUser;
       }
@@ -275,6 +278,7 @@
         roomIdLabel.textContent = `room: ${state.activeRoomId || "-"}`;
         messageInput.disabled = !state.activeRoomId;
         sendButton.disabled = !state.activeRoomId;
+        sendButton.textContent = state.editingMessageId ? "수정 저장" : "보내기";
         chatLog.innerHTML = "";
 
         if (state.messages.length === 0) {
@@ -356,7 +360,7 @@
           return;
         }
 
-        const payload = await request(`/api/v1/chat/rooms/${state.activeRoomId}/messages?memberEmail=${encodeURIComponent(state.currentUser.email)}`);
+        const payload = await request(`/api/v1/chat/messages/${state.activeRoomId}?memberEmail=${encodeURIComponent(state.currentUser.email)}`);
         state.messages = Array.isArray(payload.Data) ? payload.Data : [];
         renderMessages();
       }
@@ -422,36 +426,44 @@
       }
 
       async function editMessage(message) {
-        const nextMessage = window.prompt("수정할 메시지를 입력하세요.", message.message);
-        if (nextMessage === null) {
-          return;
-        }
+        state.editingMessageId = message.messageId;
+        messageInput.value = message.message;
+        messageInput.focus();
+        renderMessages();
+      }
 
+      async function updateMessage(text) {
         try {
-          await request(`/api/v1/chat/messages/${message.messageId}/edit`, {
-            method: "POST",
+          const payload = await request(`/api/v1/chat/messages/${state.editingMessageId}`, {
+            method: "PATCH",
             body: JSON.stringify({
               memberEmail: state.currentUser.email,
-              message: nextMessage
+              message: text
             })
           });
+          if (payload?.Data) {
+            upsertMessage(payload.Data);
+          }
+          state.editingMessageId = null;
+          messageInput.value = "";
+          renderMessages();
         } catch (error) {
           setStatus(error.message);
         }
       }
 
       async function deleteMessage(message) {
-        if (!window.confirm("메시지를 삭제할까요?")) {
-          return;
-        }
-
         try {
-          await request(`/api/v1/chat/messages/${message.messageId}/delete`, {
-            method: "POST",
+          const payload = await request(`/api/v1/chat/messages/${message.messageId}`, {
+            method: "DELETE",
             body: JSON.stringify({
               memberEmail: state.currentUser.email
             })
           });
+          if (payload?.Data) {
+            upsertMessage(payload.Data);
+            renderMessages();
+          }
         } catch (error) {
           setStatus(error.message);
         }
@@ -490,6 +502,7 @@
         state.selectedMemberEmail = null;
         state.activeRoomId = null;
         state.messages = [];
+        state.editingMessageId = null;
         renderSession();
         renderMessages();
         setStatus("로그아웃");
@@ -509,7 +522,7 @@
           const payload = await request("/api/v1/chat/rooms/enter", {
             method: "POST",
             body: JSON.stringify({
-              memberEmail: memberEmailInput.value,
+              memberEmail: state.currentUser.email,
               targetMemberEmail: targetEmailInput.value,
               productId: productIdInput.value ? Number(productIdInput.value) : null
             })
@@ -523,6 +536,7 @@
           state.selectedMemberEmail = targetEmailInput.value;
           state.activeRoomId = roomId;
           state.messages = [];
+          state.editingMessageId = null;
           renderMessages();
           setStatus(`채팅방 ${roomId} 연결`);
           connectSocket(roomId);
@@ -540,6 +554,11 @@
 
         const text = messageInput.value.trim();
         if (!state.stompClient?.connected || !state.activeRoomId || !state.currentUser || !text) {
+          return;
+        }
+
+        if (state.editingMessageId) {
+          updateMessage(text);
           return;
         }
 

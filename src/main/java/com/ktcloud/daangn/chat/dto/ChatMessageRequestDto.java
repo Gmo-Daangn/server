@@ -1,7 +1,0 @@
-package com.ktcloud.daangn.chat.dto;
-
-public record ChatMessageRequestDto(
-        String memberEmail,
-        String message
-) {
-}

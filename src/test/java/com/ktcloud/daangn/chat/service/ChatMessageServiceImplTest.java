@@ -1,8 +1,5 @@
 package com.ktcloud.daangn.chat.service;
 
-import com.ktcloud.daangn.chat.dto.ChatMessageDeleteRequestDto;
-import com.ktcloud.daangn.chat.dto.ChatMessageEditRequestDto;
-import com.ktcloud.daangn.chat.dto.ChatMessageRequestDto;
 import com.ktcloud.daangn.chat.dto.ChatMessageResponseDto;
 import com.ktcloud.daangn.chat.dto.ChatRoomEnterRequestDto;
 import com.ktcloud.daangn.chat.dto.ChatRoomEnterResponseDto;
@@ -42,12 +39,14 @@ class ChatMessageServiceImplTest {
         Long roomId = createRoom();
         ChatMessageResponseDto createdMessage = chatMessageService.create(
                 roomId,
-                new ChatMessageRequestDto("a@test.com", "before")
+                "a@test.com",
+                "before"
         );
 
         ChatMessageResponseDto editedMessage = chatMessageService.edit(
                 createdMessage.messageId(),
-                new ChatMessageEditRequestDto("a@test.com", "after")
+                "a@test.com",
+                "after"
         );
 
         assertThat(editedMessage.message()).isEqualTo("after");
@@ -60,12 +59,13 @@ class ChatMessageServiceImplTest {
         Long roomId = createRoom();
         ChatMessageResponseDto createdMessage = chatMessageService.create(
                 roomId,
-                new ChatMessageRequestDto("a@test.com", "to delete")
+                "a@test.com",
+                "to delete"
         );
 
         ChatMessageResponseDto deletedMessage = chatMessageService.delete(
                 createdMessage.messageId(),
-                new ChatMessageDeleteRequestDto("a@test.com")
+                "a@test.com"
         );
 
         assertThat(deletedMessage.deleted()).isTrue();
@@ -78,26 +78,16 @@ class ChatMessageServiceImplTest {
         Long roomId = createRoom();
         ChatMessageResponseDto createdMessage = chatMessageService.create(
                 roomId,
-                new ChatMessageRequestDto("a@test.com", "owner message")
+                "a@test.com",
+                "owner message"
         );
 
         assertThatThrownBy(() -> chatMessageService.edit(
                 createdMessage.messageId(),
-                new ChatMessageEditRequestDto("b@test.com", "hack")
+                "b@test.com",
+                "hack"
         )).isInstanceOf(InvalidInputException.class)
                 .hasMessage("본인이 작성한 메시지만 수정 또는 삭제할 수 있습니다.");
-    }
-
-    @Test
-    @DisplayName("[Exception] 비어 있는 메시지는 전송할 수 없다.")
-    void create_throwsExceptionWhenMessageIsBlank() {
-        Long roomId = createRoom();
-
-        assertThatThrownBy(() -> chatMessageService.create(
-                roomId,
-                new ChatMessageRequestDto("a@test.com", "   ")
-        )).isInstanceOf(InvalidInputException.class)
-                .hasMessage("메시지는 비어 있을 수 없습니다.");
     }
 
     @Test
@@ -108,7 +98,8 @@ class ChatMessageServiceImplTest {
 
         assertThatThrownBy(() -> chatMessageService.create(
                 roomId,
-                new ChatMessageRequestDto("c@test.com", "hello")
+                "c@test.com",
+                "hello"
         )).isInstanceOf(InvalidInputException.class)
                 .hasMessage("채팅방 참여자가 아닙니다.");
     }
@@ -119,13 +110,15 @@ class ChatMessageServiceImplTest {
         Long roomId = createRoom();
         ChatMessageResponseDto createdMessage = chatMessageService.create(
                 roomId,
-                new ChatMessageRequestDto("a@test.com", "owner message")
+                "a@test.com",
+                "owner message"
         );
-        chatMessageService.delete(createdMessage.messageId(), new ChatMessageDeleteRequestDto("a@test.com"));
+        chatMessageService.delete(createdMessage.messageId(), "a@test.com");
 
         assertThatThrownBy(() -> chatMessageService.edit(
                 createdMessage.messageId(),
-                new ChatMessageEditRequestDto("a@test.com", "after")
+                "a@test.com",
+                "after"
         )).isInstanceOf(InvalidInputException.class)
                 .hasMessage("삭제된 메시지는 수정 또는 삭제할 수 없습니다.");
     }
@@ -137,7 +130,7 @@ class ChatMessageServiceImplTest {
 
         assertThatThrownBy(() -> chatMessageService.delete(
                 Long.MAX_VALUE,
-                new ChatMessageDeleteRequestDto("a@test.com")
+                "a@test.com"
         )).isInstanceOf(InvalidInputException.class)
                 .hasMessage("메시지가 존재하지 않습니다.");
     }

@@ -1,8 +1,9 @@
 package com.ktcloud.daangn.chat.controller;
 
-import com.ktcloud.daangn.chat.dto.ChatMessageRequestDto;
 import com.ktcloud.daangn.chat.dto.ChatMessageResponseDto;
+import com.ktcloud.daangn.chat.dto.ChatMessageWriteRequestDto;
 import com.ktcloud.daangn.chat.service.ChatMessageService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -19,8 +20,8 @@ public class ChatSocketController {
 
     // 채팅 메시지 전송 처리
     @MessageMapping("/chat/rooms/{roomId}/messages")
-    public void create(@DestinationVariable Long roomId, @Payload ChatMessageRequestDto dto) {
-        ChatMessageResponseDto response = chatMessageService.create(roomId, dto);
+    public void create(@DestinationVariable Long roomId, @Valid @Payload ChatMessageWriteRequestDto dto) {
+        ChatMessageResponseDto response = chatMessageService.create(roomId, dto.memberEmail(), dto.message());
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + roomId + "/messages", response);
     }
 }

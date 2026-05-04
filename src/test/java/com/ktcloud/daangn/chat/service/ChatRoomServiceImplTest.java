@@ -1,6 +1,5 @@
 package com.ktcloud.daangn.chat.service;
 
-import com.ktcloud.daangn.chat.dto.ChatMessageRequestDto;
 import com.ktcloud.daangn.chat.dto.ChatRoomEnterRequestDto;
 import com.ktcloud.daangn.chat.dto.ChatRoomEnterResponseDto;
 import com.ktcloud.daangn.chat.dto.ChatRoomListResponseDto;
@@ -63,7 +62,7 @@ class ChatRoomServiceImplTest {
         ChatRoomEnterResponseDto room = chatRoomService.enterDirectRoom(
                 new ChatRoomEnterRequestDto("a@test.com", "b@test.com", 200L)
         );
-        chatMessageService.create(room.roomId(), new ChatMessageRequestDto("a@test.com", "hello"));
+        chatMessageService.create(room.roomId(), "a@test.com", "hello");
 
         List<ChatRoomListResponseDto> rooms = chatRoomService.findDirectRooms("a@test.com");
 
@@ -82,8 +81,8 @@ class ChatRoomServiceImplTest {
         ChatRoomEnterResponseDto room = chatRoomService.enterDirectRoom(
                 new ChatRoomEnterRequestDto("a@test.com", "b@test.com", 300L)
         );
-        chatMessageService.create(room.roomId(), new ChatMessageRequestDto("a@test.com", "first"));
-        chatMessageService.create(room.roomId(), new ChatMessageRequestDto("a@test.com", "second"));
+        chatMessageService.create(room.roomId(), "a@test.com", "first");
+        chatMessageService.create(room.roomId(), "a@test.com", "second");
 
         ChatRoomReadResponseDto response = chatRoomService.readDirectRoom(
                 room.roomId(),
@@ -126,7 +125,7 @@ class ChatRoomServiceImplTest {
         ChatRoomEnterResponseDto room = chatRoomService.enterDirectRoom(
                 new ChatRoomEnterRequestDto("a@test.com", "b@test.com", 300L)
         );
-        chatMessageService.create(room.roomId(), new ChatMessageRequestDto("a@test.com", "first"));
+        chatMessageService.create(room.roomId(), "a@test.com", "first");
 
         assertThatThrownBy(() -> chatRoomService.readDirectRoom(
                 room.roomId(),

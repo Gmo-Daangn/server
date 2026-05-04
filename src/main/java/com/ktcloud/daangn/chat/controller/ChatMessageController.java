@@ -1,10 +1,11 @@
 package com.ktcloud.daangn.chat.controller;
 
 import com.ktcloud.daangn.chat.dto.ChatMessageDeleteRequestDto;
-import com.ktcloud.daangn.chat.dto.ChatMessageEditRequestDto;
 import com.ktcloud.daangn.chat.dto.ChatMessageResponseDto;
+import com.ktcloud.daangn.chat.dto.ChatMessageWriteRequestDto;
 import com.ktcloud.daangn.chat.service.ChatMessageService;
 import com.ktcloud.daangn.config.dto.BaseResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +21,7 @@ public class ChatMessageController {
     private final SimpMessagingTemplate messagingTemplate;
 
     // 채팅 메시지 목록 조회
-    @GetMapping("/rooms/{roomId}/messages")
+    @GetMapping("/messages/{roomId}")
     public BaseResponse<List<ChatMessageResponseDto>> list(
             @PathVariable Long roomId,
             @RequestParam String memberEmail
@@ -29,24 +30,24 @@ public class ChatMessageController {
     }
 
     // 채팅 메시지 수정
-    @PostMapping("/messages/{messageId}/edit")
+    @PatchMapping("/messages/{messageId}")
     public BaseResponse<ChatMessageResponseDto> edit(
             @PathVariable Long messageId,
-            @RequestBody ChatMessageEditRequestDto dto
+            @Valid @RequestBody ChatMessageWriteRequestDto dto
     ) {
-        ChatMessageResponseDto response = chatMessageService.edit(messageId, dto);
+        ChatMessageResponseDto response = chatMessageService.edit(messageId, dto.memberEmail(), dto.message());
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + response.roomId() + "/messages", response);
 
         return BaseResponse.success(response);
     }
 
     // 채팅 메시지 삭제
-    @PostMapping("/messages/{messageId}/delete")
+    @DeleteMapping("/messages/{messageId}")
     public BaseResponse<ChatMessageResponseDto> delete(
             @PathVariable Long messageId,
-            @RequestBody ChatMessageDeleteRequestDto dto
+            @Valid @RequestBody ChatMessageDeleteRequestDto dto
     ) {
-        ChatMessageResponseDto response = chatMessageService.delete(messageId, dto);
+        ChatMessageResponseDto response = chatMessageService.delete(messageId, dto.memberEmail());
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + response.roomId() + "/messages", response);
 
         return BaseResponse.success(response);
