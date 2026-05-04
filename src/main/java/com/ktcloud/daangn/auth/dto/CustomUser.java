@@ -10,7 +10,7 @@ import java.util.Collection;
 
 @Getter
 @RequiredArgsConstructor
-public class CustomUserDetails implements UserDetails {
+public class CustomUser implements UserDetails {
 
     private final Long memberId;
     private final String email;

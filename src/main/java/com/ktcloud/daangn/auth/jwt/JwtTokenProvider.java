@@ -1,9 +1,7 @@
 package com.ktcloud.daangn.auth.jwt;
 
-import com.ktcloud.daangn.auth.dto.CustomUserDetails;
+import com.ktcloud.daangn.auth.dto.CustomUser;
 import com.ktcloud.daangn.auth.dto.TokenResponseDto;
-import com.ktcloud.daangn.config.ResultCode;
-import com.ktcloud.daangn.config.exception.InvalidInputException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -48,7 +46,7 @@ public class JwtTokenProvider {
                 .builder()
                 .subject(authentication.getName())
                 .claim("auth", authorities)
-                .claim("memberId", ((CustomUserDetails) Objects.requireNonNull(authentication.getPrincipal())).getMemberId())
+                .claim("memberId", ((CustomUser) Objects.requireNonNull(authentication.getPrincipal())).getMemberId())
                 .issuedAt(now)
                 .expiration(accessExpiration)
                 .signWith(accessKey, Jwts.SIG.HS256)
@@ -68,7 +66,7 @@ public class JwtTokenProvider {
 
         Collection<GrantedAuthority> authorities = Arrays.stream(auth.split(",")).map(SimpleGrantedAuthority::new).collect(Collectors.toList());
 
-        UserDetails principal = new CustomUserDetails(memberId, claims.getSubject(), "", authorities);
+        UserDetails principal = new CustomUser(memberId, claims.getSubject(), "", authorities);
         return new UsernamePasswordAuthenticationToken(principal,"", authorities);
     }
 
@@ -79,7 +77,9 @@ public class JwtTokenProvider {
         try {
             getClaims(token);
             return true;
-        } catch (SecurityException | MalformedJwtException e) {
+        } catch (io.jsonwebtoken.security.SignatureException e) {
+            log.error("서명 불일치: {}", e.getMessage());
+        }catch (SecurityException | MalformedJwtException e) {
             log.error("잘못된 토큰: {}", e.getMessage());
         } catch (ExpiredJwtException e) {
             log.error("만료된 토큰: {}", e.getMessage());

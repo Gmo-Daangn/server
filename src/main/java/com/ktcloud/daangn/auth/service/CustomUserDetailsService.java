@@ -1,6 +1,6 @@
 package com.ktcloud.daangn.auth.service;
 
-import com.ktcloud.daangn.auth.dto.CustomUserDetails;
+import com.ktcloud.daangn.auth.dto.CustomUser;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         Member findMember = memberService.getByEmail(email).orElseThrow(() -> new UsernameNotFoundException("이메일 혹은 비밀번호 오류 입니다."));
 
-        return new CustomUserDetails(
+        return new CustomUser(
                 findMember.getId(),
                 findMember.getEmail(),
                 findMember.getPassword(),

@@ -3,10 +3,10 @@ package com.ktcloud.daangn.auth.jwt;
 import com.ktcloud.daangn.auth.dto.AuthLoginRequestDto;
 import com.ktcloud.daangn.auth.dto.TokenResponseDto;
 import com.ktcloud.daangn.config.dto.BaseResponse;
-import com.ktcloud.daangn.config.exception.InvalidInputException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,7 +34,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     }
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
+    public Authentication attemptAuthentication(HttpServletRequest request, @NonNull HttpServletResponse response) throws AuthenticationException {
         AuthLoginRequestDto dto;
         try {
             dto = objectMapper.readValue(request.getInputStream(), AuthLoginRequestDto.class);
@@ -49,7 +49,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     }
 
     @Override
-    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException{
+    protected void successfulAuthentication(@NonNull HttpServletRequest request, HttpServletResponse response, @NonNull FilterChain chain, @NonNull Authentication authResult) throws IOException{
         TokenResponseDto tokenDto = jwtTokenProvider.createToken(authResult);
         BaseResponse<TokenResponseDto> baseResponse = BaseResponse.success(tokenDto);
 
@@ -61,7 +61,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     }
 
     @Override
-    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) throws IOException{
+    protected void unsuccessfulAuthentication(@NonNull HttpServletRequest request, HttpServletResponse response, @NonNull AuthenticationException failed) throws IOException{
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8);
