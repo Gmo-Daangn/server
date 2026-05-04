@@ -1,5 +1,6 @@
 package com.ktcloud.daangn.notification.entity;
 
+import com.ktcloud.daangn.member.entity.Member;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,8 +21,9 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long receiverId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "receiver_id", nullable = false)
+    private Member receiver;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
@@ -36,8 +38,8 @@ public class Notification {
     private LocalDateTime createdAt;
 
     @Builder
-    public Notification(Long receiverId, NotificationTemplate template, String message) {
-        this.receiverId = receiverId;
+    public Notification(Member receiver, NotificationTemplate template, String message) {
+        this.receiver = receiver;
         this.template = template;
         this.message = message;
         this.isRead = false;

@@ -1,5 +1,6 @@
 package com.ktcloud.daangn.notification.service;
 
+import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.repository.MemberRepository;
 import com.ktcloud.daangn.notification.dto.NotificationResponseDto;
 import com.ktcloud.daangn.notification.entity.Notification;
@@ -48,14 +49,14 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void createAndSendNotification(NotificationEvent event) {
-        requireMember(event.receiverId());
+        Member receiver = requireMember(event.receiverId());
         NotificationTemplate template = templateRepository.findByTemplateType(event.templateType())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 알림 템플릿입니다: " + event.templateType()));
 
         String finalMessage = template.getTemplateText().replace("{templateText}", event.templateText());
 
         Notification notification = Notification.builder()
-                .receiverId(event.receiverId())
+                .receiver(receiver)
                 .template(template)
                 .message(finalMessage)
                 .build();
@@ -111,8 +112,8 @@ public class NotificationServiceImpl implements NotificationService {
         return "알림 읽음 처리 성공";
     }
 
-    private void requireMember(Long receiverId) {
-        memberRepository.findById(receiverId)
+    private Member requireMember(Long receiverId) {
+        return memberRepository.findById(receiverId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + receiverId));
     }
 }

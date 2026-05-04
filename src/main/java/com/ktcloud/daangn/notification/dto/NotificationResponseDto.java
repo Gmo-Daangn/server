@@ -17,7 +17,7 @@ public record NotificationResponseDto(
     public static NotificationResponseDto from(Notification notification) {
         return new NotificationResponseDto(
                 notification.getId(),
-                notification.getReceiverId(),
+                notification.getReceiver().getId(),
                 notification.getTemplate().getTemplateType(),
                 notification.getTemplate().getTemplateTitle(),
                 notification.getTemplate().getIdentifier(),
