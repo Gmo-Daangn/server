@@ -2,6 +2,8 @@ package com.ktcloud.daangn.member.controller;
 
 import com.ktcloud.daangn.auth.authority.SecurityConfig;
 import com.ktcloud.daangn.auth.dto.CustomUser;
+import com.ktcloud.daangn.auth.jwt.JwtAccessDeniedHandler;
+import com.ktcloud.daangn.auth.jwt.JwtAuthenticationEntryPoint;
 import com.ktcloud.daangn.auth.jwt.JwtTokenProvider;
 import com.ktcloud.daangn.config.valueObject.Address;
 import com.ktcloud.daangn.member.dto.MemberInfoResponseDto;
@@ -25,7 +27,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(MemberController.class)
-@Import(SecurityConfig.class)
+@Import({
+        SecurityConfig.class,
+        JwtAuthenticationEntryPoint.class,
+        JwtAccessDeniedHandler.class
+})
 class MemberControllerTest {
 
     @Autowired
@@ -33,9 +39,6 @@ class MemberControllerTest {
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
-
-    @MockitoBean
-    private SecurityConfig securityConfig;
 
     @MockitoBean
     private MemberService memberService;
@@ -73,7 +76,10 @@ class MemberControllerTest {
         @DisplayName("[Exception] 토큰 정보가 없을 시 조회가 불가능하다.")
         public void getMyInfo_NotValidMember_Failed() throws Exception{
             mockMvc.perform(get("/api/v1/members"))
-                    .andExpect(status().isUnauthorized());
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.code").value(401))
+                    .andExpect(jsonPath("$.message").value("인증 오류"))
+                    .andExpect(jsonPath("$.data").value("인증이 필요합니다."));
         }
     }
 }
