@@ -36,7 +36,7 @@ public class NotificationController {
     }
 
     // 알림 읽음처리
-    @PatchMapping("/{id}/read")
+    @PatchMapping("/{id}")
     public BaseResponse<String> readNotification(@PathVariable("id") Long id) {
         return BaseResponse.success(notificationService.readNotification(id));
     }
