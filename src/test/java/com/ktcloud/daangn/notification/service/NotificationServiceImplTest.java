@@ -184,13 +184,15 @@ class NotificationServiceImplTest {
             List<NotificationResponseDto> result = notificationService.getNotifications(MEMBER_ID);
 
             assertThat(result).hasSize(1);
-            NotificationResponseDto dto = result.getFirst();
-            assertThat(dto.id()).isEqualTo(100L);
-            assertThat(dto.receiverId()).isEqualTo(MEMBER_ID);
-            assertThat(dto.templateType()).isEqualTo("TYPE_A");
-            assertThat(dto.message()).isEqualTo("msg");
-            assertThat(dto.isRead()).isFalse();
-            assertThat(dto.createdAt()).isEqualTo(created);
+            assertThat(result.getFirst())
+                    .extracting(
+                            "id",
+                            "receiverId",
+                            "templateType",
+                            "message",
+                            "isRead",
+                            "createdAt")
+                    .containsExactly(100L, MEMBER_ID, "TYPE_A", "msg", false, created);
         }
 
         @Test
