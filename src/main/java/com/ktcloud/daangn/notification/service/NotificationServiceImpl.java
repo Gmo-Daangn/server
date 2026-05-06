@@ -30,6 +30,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationTemplateRepository templateRepository;
     private final MemberService memberService;
 
+    // SSE 연결
     // SSE 구독 요청 처리
     @Override
     public SseEmitter subscribe(Long receiverId) {
