@@ -3,7 +3,6 @@ package com.ktcloud.daangn.auth.service;
 import com.ktcloud.daangn.config.TestContainerConfig;
 import com.ktcloud.daangn.config.exception.InvalidInputException;
 import com.ktcloud.daangn.config.valueObject.Address;
-import com.ktcloud.daangn.auth.dto.AuthLoginRequestDto;
 import com.ktcloud.daangn.auth.dto.AuthSignupRequestDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
