@@ -1,7 +1,7 @@
 package com.ktcloud.daangn.notification.service;
 
 import com.ktcloud.daangn.member.entity.Member;
-import com.ktcloud.daangn.member.repository.MemberRepository;
+import com.ktcloud.daangn.member.service.MemberService;
 import com.ktcloud.daangn.notification.dto.NotificationResponseDto;
 import com.ktcloud.daangn.notification.entity.Notification;
 import com.ktcloud.daangn.notification.entity.NotificationTemplate;
@@ -28,7 +28,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final EmitterRepository emitterRepository;
     private final NotificationRepository notificationRepository;
     private final NotificationTemplateRepository templateRepository;
-    private final MemberRepository memberRepository;
+    private final MemberService memberService;
 
     // SSE 구독 요청 처리
     @Override
@@ -113,7 +113,6 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private Member requireMember(Long receiverId) {
-        return memberRepository.findById(receiverId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + receiverId));
+        return memberService.getByIdOrThrow(receiverId);
     }
 }
