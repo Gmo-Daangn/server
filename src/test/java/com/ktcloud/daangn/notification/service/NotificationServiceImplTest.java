@@ -1,7 +1,8 @@
 package com.ktcloud.daangn.notification.service;
 
+import com.ktcloud.daangn.config.exception.InvalidInputException;
 import com.ktcloud.daangn.member.entity.Member;
-import com.ktcloud.daangn.member.repository.MemberRepository;
+import com.ktcloud.daangn.member.service.MemberService;
 import com.ktcloud.daangn.notification.dto.NotificationResponseDto;
 import com.ktcloud.daangn.notification.entity.Notification;
 import com.ktcloud.daangn.notification.entity.NotificationTemplate;
@@ -18,6 +19,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -45,7 +47,7 @@ class NotificationServiceImplTest {
     @Mock
     NotificationTemplateRepository templateRepository;
     @Mock
-    MemberRepository memberRepository;
+    MemberService memberService;
 
     @InjectMocks
     NotificationServiceImpl notificationService;
@@ -61,7 +63,7 @@ class NotificationServiceImplTest {
     }
 
     private void givenExistingMember(Long receiverId) {
-        given(memberRepository.findById(receiverId)).willReturn(Optional.of(existingMember));
+        given(memberService.getByIdOrThrow(receiverId)).willReturn(existingMember);
     }
 
     private NotificationTemplate buildTemplate(String type, String text) {
@@ -97,11 +99,12 @@ class NotificationServiceImplTest {
         @Test
         @DisplayName("[Exception] 존재하지 않는 회원이면 예외가 발생한다")
         void subscribe_memberNotFound_throws() {
-            given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.empty());
+            given(memberService.getByIdOrThrow(MEMBER_ID))
+                    .willThrow(new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "존재하지 않는 ID입니다."));
 
             assertThatThrownBy(() -> notificationService.subscribe(MEMBER_ID))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("존재하지 않는 회원입니다");
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessageContaining("존재하지 않는 ID");
 
             verifyNoInteractions(emitterRepository);
         }
@@ -138,12 +141,13 @@ class NotificationServiceImplTest {
         @Test
         @DisplayName("[Exception] 회원이 없으면 저장하지 않는다")
         void create_memberMissing_throwsAndDoesNotSave() {
-            given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.empty());
+            given(memberService.getByIdOrThrow(MEMBER_ID))
+                    .willThrow(new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "존재하지 않는 ID입니다."));
 
             NotificationEvent event = new NotificationEvent(MEMBER_ID, "ORDER", 1L, "x");
             assertThatThrownBy(() -> notificationService.createAndSendNotification(event))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("존재하지 않는 회원");
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessageContaining("존재하지 않는 ID");
 
             verifyNoInteractions(notificationRepository, templateRepository, emitterRepository);
         }
@@ -198,10 +202,11 @@ class NotificationServiceImplTest {
         @Test
         @DisplayName("[Exception] 회원이 없으면 예외가 발생한다")
         void get_memberMissing_throws() {
-            given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.empty());
+            given(memberService.getByIdOrThrow(MEMBER_ID))
+                    .willThrow(new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "존재하지 않는 ID입니다."));
 
             assertThatThrownBy(() -> notificationService.getNotifications(MEMBER_ID))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(InvalidInputException.class);
 
             verifyNoInteractions(notificationRepository);
         }
