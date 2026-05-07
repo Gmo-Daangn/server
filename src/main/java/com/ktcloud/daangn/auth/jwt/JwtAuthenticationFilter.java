@@ -26,7 +26,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = resolveToken(request);
 
         if (!StringUtils.hasText(token)) {
-            log.error("토큰 정보 알 수 없음");
+            log.debug("토큰 정보 알 수 없음");
             filterChain.doFilter(request,response);
             return;
         }
