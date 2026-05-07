@@ -1,13 +1,16 @@
 package com.ktcloud.daangn.member.service;
 
-import com.ktcloud.daangn.config.dto.BaseResponse;
-import com.ktcloud.daangn.member.dto.MemberLoginRequestDto;
-import com.ktcloud.daangn.member.dto.MemberSignupRequestDto;
 import com.ktcloud.daangn.member.entity.Member;
-import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 public interface MemberService {
-    String signup(MemberSignupRequestDto dto);
 
-    String login(MemberLoginRequestDto dto);
+    Boolean isEmailDuplicated(String email);
+
+    Member register(Member member);
+
+    Member getByIdOrThrow(Long id);
+
+    Optional<Member> getByEmail(String email);
 }
