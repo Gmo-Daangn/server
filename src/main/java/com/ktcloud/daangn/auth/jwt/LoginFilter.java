@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -19,6 +20,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
@@ -39,7 +41,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         try {
             dto = objectMapper.readValue(request.getInputStream(), AuthLoginRequestDto.class);
             validateLoginRequest(dto);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new AuthenticationServiceException("요청을 읽을 수 없습니다.");
         }
 
@@ -66,7 +68,11 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8);
 
-        BaseResponse<String> failedResponse = BaseResponse.fail(HttpStatus.UNAUTHORIZED.value(), "로그인 실패", "이메일 혹은 비밀번호 오류입니다.");
+        String message = failed instanceof BadCredentialsException
+                ? "이메일 혹은 비밀번호 오류입니다."
+                : Objects.requireNonNullElse(failed.getMessage(), "인증에 실패했습니다.");
+
+        BaseResponse<String> failedResponse = BaseResponse.fail(HttpStatus.UNAUTHORIZED.value(), "로그인 실패", message);
 
         objectMapper.writeValue(response.getWriter(), failedResponse);
     }
