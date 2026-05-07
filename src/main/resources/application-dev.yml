@@ -47,6 +47,6 @@ logging:
         type.descriptor.sql: trace
       springframework:
         mail: debug
-#jwt:
-#  access_secret: ${ACCESS_JWT_KEY}
+jwt:
+  access_secret: ${ACCESS_JWT_KEY}
 #  refresh_secret: ${REFRESH_JWT_KEY}
