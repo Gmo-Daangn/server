@@ -31,7 +31,7 @@ public class MemberServiceIntegrationTest {
 
     @Test
     @DisplayName("[HAPPY] 내 정보 조회시 성공적으로 반환한다.")
-    public void etMyInfo_ValidMember_Success(){
+    public void getMyInfo_ValidMember_Success(){
         //given
         Member member = Member.builder()
                 .email("test@test.com")
