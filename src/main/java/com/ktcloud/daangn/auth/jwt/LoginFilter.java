@@ -40,10 +40,11 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         AuthLoginRequestDto dto;
         try {
             dto = objectMapper.readValue(request.getInputStream(), AuthLoginRequestDto.class);
-            validateLoginRequest(dto);
         } catch (Exception e) {
             throw new AuthenticationServiceException("요청을 읽을 수 없습니다.");
         }
+
+        validateLoginRequest(dto);
 
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(dto.email(), dto.password(), null);
 
