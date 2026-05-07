@@ -11,7 +11,7 @@ import java.util.List;
 public interface ChatRoomService {
     ChatRoomEnterResponseDto enterDirectRoom(ChatRoomEnterRequestDto dto);
 
-    List<ChatRoomListResponseDto> findDirectRooms(String memberEmail);
+    List<ChatRoomListResponseDto> findDirectRooms(Long memberId);
 
     ChatRoomReadResponseDto readDirectRoom(Long roomId, ChatRoomReadRequestDto dto);
 }

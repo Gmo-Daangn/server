@@ -1,9 +1,9 @@
 package com.ktcloud.daangn.chat.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public record ChatMessageDeleteRequestDto(
-        @NotBlank(message = "이메일은 비어 있을 수 없습니다.")
-        String memberEmail
+        @NotNull(message = "회원 ID는 비어 있을 수 없습니다.")
+        Long memberId
 ) {
 }

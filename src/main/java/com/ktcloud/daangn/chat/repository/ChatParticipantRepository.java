@@ -10,11 +10,11 @@ import java.util.Optional;
 @Repository
 public interface ChatParticipantRepository extends JpaRepository<ChatParticipant, Long> {
 
-    List<ChatParticipant> findByMember_Email(String memberEmail);
+    List<ChatParticipant> findByMember_Id(Long memberId);
 
     List<ChatParticipant> findByChatRoom_Id(Long roomId);
 
-    Optional<ChatParticipant> findByChatRoom_IdAndMember_Email(Long roomId, String memberEmail);
+    Optional<ChatParticipant> findByChatRoom_IdAndMember_Id(Long roomId, Long memberId);
 
     long countByChatRoom_Id(Long roomId);
 }

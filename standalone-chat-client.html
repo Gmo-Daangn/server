@@ -154,8 +154,8 @@
       <section class="card">
         <h2>채팅방 입장</h2>
         <form id="chat-room-form" class="form">
-          <input id="member-email-input" type="email" placeholder="내 이메일" required />
-          <input id="target-email-input" type="email" placeholder="상대 이메일" required />
+          <input id="member-id-input" type="number" min="1" placeholder="내 회원 ID" required />
+          <input id="target-member-id-input" type="number" min="1" placeholder="상대 회원 ID" required />
           <input id="product-id-input" type="number" min="1" placeholder="상품 ID(선택)" />
           <button id="enter-room-button" type="submit">채팅 시작</button>
         </form>
@@ -184,7 +184,7 @@
 
       const state = {
         currentUser: null,
-        selectedMemberEmail: null,
+        selectedMemberLabel: null,
         activeRoomId: null,
         messages: [],
         editingMessageId: null,
@@ -201,8 +201,8 @@
       const sessionEmail = document.getElementById("session-email");
       const logoutButton = document.getElementById("logout-button");
       const chatRoomForm = document.getElementById("chat-room-form");
-      const memberEmailInput = document.getElementById("member-email-input");
-      const targetEmailInput = document.getElementById("target-email-input");
+      const memberIdInput = document.getElementById("member-id-input");
+      const targetMemberIdInput = document.getElementById("target-member-id-input");
       const productIdInput = document.getElementById("product-id-input");
       const enterRoomButton = document.getElementById("enter-room-button");
       const selectedMemberLabel = document.getElementById("selected-member-label");
@@ -220,6 +220,15 @@
         state.busy = busy;
         loginButton.disabled = busy;
         enterRoomButton.disabled = busy || !state.currentUser;
+      }
+
+      function parseMemberId(message) {
+        const matched = String(message || "").match(/ID\s*:\s*(\d+)/);
+        if (!matched) {
+          throw new Error("로그인 응답에서 회원 ID를 찾을 수 없습니다.");
+        }
+
+        return Number(matched[1]);
       }
 
       async function request(path, options = {}) {
@@ -242,14 +251,14 @@
       function renderSession() {
         if (state.currentUser) {
           sessionBox.hidden = false;
-          sessionEmail.textContent = state.currentUser.email;
-          memberEmailInput.value = state.currentUser.email;
-          memberEmailInput.readOnly = true;
+          sessionEmail.textContent = `${state.currentUser.email} (ID: ${state.currentUser.memberId})`;
+          memberIdInput.value = state.currentUser.memberId;
+          memberIdInput.readOnly = true;
         } else {
           sessionBox.hidden = true;
           sessionEmail.textContent = "";
-          memberEmailInput.value = "";
-          memberEmailInput.readOnly = false;
+          memberIdInput.value = "";
+          memberIdInput.readOnly = false;
         }
         enterRoomButton.disabled = state.busy || !state.currentUser;
       }
@@ -274,7 +283,7 @@
       }
 
       function renderMessages() {
-        selectedMemberLabel.textContent = `상대: ${state.selectedMemberEmail || "-"}`;
+        selectedMemberLabel.textContent = `상대: ${state.selectedMemberLabel || "-"}`;
         roomIdLabel.textContent = `room: ${state.activeRoomId || "-"}`;
         messageInput.disabled = !state.activeRoomId;
         sendButton.disabled = !state.activeRoomId;
@@ -291,16 +300,16 @@
 
         state.messages.forEach((message) => {
           const item = document.createElement("div");
-          item.className = `message ${message.senderEmail === state.currentUser?.email ? "outgoing" : "incoming"}`;
+          item.className = `message ${message.senderId === state.currentUser?.memberId ? "outgoing" : "incoming"}`;
 
           const head = document.createElement("div");
           head.className = "message-head";
 
           const sender = document.createElement("strong");
-          sender.textContent = message.senderEmail;
+          sender.textContent = `member #${message.senderId}`;
           head.appendChild(sender);
 
-          if (message.senderEmail === state.currentUser?.email && !message.deleted) {
+          if (message.senderId === state.currentUser?.memberId && !message.deleted) {
             const actions = document.createElement("div");
             actions.className = "message-actions";
 
@@ -346,7 +355,7 @@
         return {
           messageId: payload.messageId,
           roomId: payload.roomId,
-          senderEmail: payload.senderEmail,
+          senderId: payload.senderId,
           message: payload.message,
           edited: payload.edited,
           deleted: payload.deleted,
@@ -360,7 +369,7 @@
           return;
         }
 
-        const payload = await request(`/api/v1/chat/messages/${state.activeRoomId}?memberEmail=${encodeURIComponent(state.currentUser.email)}`);
+        const payload = await request(`/api/v1/chat/messages/${state.activeRoomId}?memberId=${encodeURIComponent(state.currentUser.memberId)}`);
         state.messages = Array.isArray(payload.Data) ? payload.Data : [];
         renderMessages();
       }
@@ -371,10 +380,10 @@
         }
 
         try {
-          await request(`/api/v1/chat/rooms/${state.activeRoomId}/read`, {
+          await request(`/api/v1/chat/rooms/read/${state.activeRoomId}`, {
             method: "POST",
             body: JSON.stringify({
-              memberEmail: state.currentUser.email
+              memberId: state.currentUser.memberId
             })
           });
         } catch (error) {
@@ -404,7 +413,7 @@
               upsertMessage(payload);
               renderMessages();
 
-              if (payload.senderEmail !== state.currentUser?.email) {
+              if (payload.senderId !== state.currentUser?.memberId) {
                 await markRoomRead();
               }
             });
@@ -437,7 +446,7 @@
           const payload = await request(`/api/v1/chat/messages/${state.editingMessageId}`, {
             method: "PATCH",
             body: JSON.stringify({
-              memberEmail: state.currentUser.email,
+              memberId: state.currentUser.memberId,
               message: text
             })
           });
@@ -457,7 +466,7 @@
           const payload = await request(`/api/v1/chat/messages/${message.messageId}`, {
             method: "DELETE",
             body: JSON.stringify({
-              memberEmail: state.currentUser.email
+              memberId: state.currentUser.memberId
             })
           });
           if (payload?.Data) {
@@ -485,6 +494,7 @@
 
           state.currentUser = {
             email: emailInput.value,
+            memberId: parseMemberId(payload.Data),
             serverMessage: payload.Data
           };
           renderSession();
@@ -499,7 +509,7 @@
       logoutButton.addEventListener("click", () => {
         disconnectSocket();
         state.currentUser = null;
-        state.selectedMemberEmail = null;
+        state.selectedMemberLabel = null;
         state.activeRoomId = null;
         state.messages = [];
         state.editingMessageId = null;
@@ -522,8 +532,8 @@
           const payload = await request("/api/v1/chat/rooms/enter", {
             method: "POST",
             body: JSON.stringify({
-              memberEmail: state.currentUser.email,
-              targetMemberEmail: targetEmailInput.value,
+              memberId: state.currentUser.memberId,
+              targetMemberId: Number(targetMemberIdInput.value),
               productId: productIdInput.value ? Number(productIdInput.value) : null
             })
           });
@@ -533,7 +543,7 @@
             throw new Error("roomId가 없습니다.");
           }
 
-          state.selectedMemberEmail = targetEmailInput.value;
+          state.selectedMemberLabel = `member #${targetMemberIdInput.value}`;
           state.activeRoomId = roomId;
           state.messages = [];
           state.editingMessageId = null;
@@ -568,7 +578,7 @@
             "content-type": "application/json"
           },
           body: JSON.stringify({
-            memberEmail: state.currentUser.email,
+            memberId: state.currentUser.memberId,
             message: text
           })
         });

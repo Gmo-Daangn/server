@@ -12,14 +12,14 @@ class ChatMessageDeleteRequestDtoTest {
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
     @Test
-    @DisplayName("[Validation] 삭제 요청 작성자 이메일은 비어 있을 수 없다.")
-    void validate_failsWhenMemberEmailIsBlank() {
-        ChatMessageDeleteRequestDto dto = new ChatMessageDeleteRequestDto("   ");
+    @DisplayName("[Validation] 삭제 요청 작성자 회원 ID는 비어 있을 수 없다.")
+    void validate_failsWhenMemberIdIsNull() {
+        ChatMessageDeleteRequestDto dto = new ChatMessageDeleteRequestDto(null);
 
         assertThat(validator.validate(dto))
                 .anySatisfy(violation -> {
-                    assertThat(violation.getPropertyPath().toString()).isEqualTo("memberEmail");
-                    assertThat(violation.getMessage()).isEqualTo("이메일은 비어 있을 수 없습니다.");
+                    assertThat(violation.getPropertyPath().toString()).isEqualTo("memberId");
+                    assertThat(violation.getMessage()).isEqualTo("회원 ID는 비어 있을 수 없습니다.");
                 });
     }
 }

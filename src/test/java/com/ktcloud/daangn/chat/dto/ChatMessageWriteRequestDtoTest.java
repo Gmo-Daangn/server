@@ -14,7 +14,7 @@ class ChatMessageWriteRequestDtoTest {
     @Test
     @DisplayName("[Validation] 메시지는 비어 있을 수 없다.")
     void validate_failsWhenMessageIsBlank() {
-        ChatMessageWriteRequestDto dto = new ChatMessageWriteRequestDto("a@test.com", "   ");
+        ChatMessageWriteRequestDto dto = new ChatMessageWriteRequestDto(1L, "   ");
 
         assertThat(validator.validate(dto))
                 .anySatisfy(violation -> {
@@ -24,14 +24,14 @@ class ChatMessageWriteRequestDtoTest {
     }
 
     @Test
-    @DisplayName("[Validation] 작성자 이메일은 비어 있을 수 없다.")
-    void validate_failsWhenMemberEmailIsBlank() {
-        ChatMessageWriteRequestDto dto = new ChatMessageWriteRequestDto("   ", "hello");
+    @DisplayName("[Validation] 작성자 회원 ID는 비어 있을 수 없다.")
+    void validate_failsWhenMemberIdIsNull() {
+        ChatMessageWriteRequestDto dto = new ChatMessageWriteRequestDto(null, "hello");
 
         assertThat(validator.validate(dto))
                 .anySatisfy(violation -> {
-                    assertThat(violation.getPropertyPath().toString()).isEqualTo("memberEmail");
-                    assertThat(violation.getMessage()).isEqualTo("이메일은 비어 있을 수 없습니다.");
+                    assertThat(violation.getPropertyPath().toString()).isEqualTo("memberId");
+                    assertThat(violation.getMessage()).isEqualTo("회원 ID는 비어 있을 수 없습니다.");
                 });
     }
 }

@@ -24,9 +24,9 @@ public class ChatMessageController {
     @GetMapping("/messages/{roomId}")
     public BaseResponse<List<ChatMessageResponseDto>> list(
             @PathVariable Long roomId,
-            @RequestParam String memberEmail
+            @RequestParam Long memberId
     ) {
-        return BaseResponse.success(chatMessageService.list(roomId, memberEmail));
+        return BaseResponse.success(chatMessageService.list(roomId, memberId));
     }
 
     // 채팅 메시지 수정
@@ -35,7 +35,7 @@ public class ChatMessageController {
             @PathVariable Long messageId,
             @Valid @RequestBody ChatMessageWriteRequestDto dto
     ) {
-        ChatMessageResponseDto response = chatMessageService.edit(messageId, dto.memberEmail(), dto.message());
+        ChatMessageResponseDto response = chatMessageService.edit(messageId, dto.memberId(), dto.message());
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + response.roomId() + "/messages", response);
 
         return BaseResponse.success(response);
@@ -47,7 +47,7 @@ public class ChatMessageController {
             @PathVariable Long messageId,
             @Valid @RequestBody ChatMessageDeleteRequestDto dto
     ) {
-        ChatMessageResponseDto response = chatMessageService.delete(messageId, dto.memberEmail());
+        ChatMessageResponseDto response = chatMessageService.delete(messageId, dto.memberId());
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + response.roomId() + "/messages", response);
 
         return BaseResponse.success(response);

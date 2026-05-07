@@ -1,9 +1,14 @@
 package com.ktcloud.daangn.chat.dto;
 
+import jakarta.validation.constraints.NotNull;
+
 public record ChatRoomEnterRequestDto(
-        // 이메일로 임시 사용중
-        String memberEmail,
-        String targetMemberEmail,
+        @NotNull(message = "회원 ID는 비어 있을 수 없습니다.")
+        Long memberId,
+
+        @NotNull(message = "상대 회원 ID는 비어 있을 수 없습니다.")
+        Long targetMemberId,
+
         Long productId
 ) {
 }

@@ -75,8 +75,8 @@ public class ChatMessage {
         this.readCount = 0;
     }
 
-    public boolean isWrittenBy(String memberEmail) {
-        return this.member.getEmail().equals(memberEmail);
+    public boolean isWrittenBy(Long memberId) {
+        return this.member.getId().equals(memberId);
     }
 
     public boolean isDeletedMessage() {

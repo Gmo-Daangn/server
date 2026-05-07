@@ -12,5 +12,5 @@ public interface ChatRoomRepository {
 
     Optional<ChatRoom> findById(Long roomId);
 
-    List<ChatRoom> findExistingDirectRoom(String memberEmail, String targetMemberEmail, Long productId, ChatType type);
+    List<ChatRoom> findExistingDirectRoom(Long memberId, Long targetMemberId, Long productId, ChatType type);
 }

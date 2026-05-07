@@ -9,7 +9,7 @@ import com.ktcloud.daangn.chat.repository.ChatParticipantRepository;
 import com.ktcloud.daangn.chat.repository.ChatRoomRepository;
 import com.ktcloud.daangn.config.exception.InvalidInputException;
 import com.ktcloud.daangn.member.entity.Member;
-import com.ktcloud.daangn.member.repository.MemberDBRepositoryImpl;
+import com.ktcloud.daangn.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,15 +25,15 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatParticipantRepository chatParticipantRepository;
-    private final MemberDBRepositoryImpl memberRepository;
+    private final MemberService memberService;
 
     // 메시지 전송 처리
     @Override
     @Transactional
-    public ChatMessageResponseDto create(Long roomId, String memberEmail, String message) {
+    public ChatMessageResponseDto create(Long roomId, Long memberId, String message) {
         ChatRoom chatRoom = findRoomByIdOrThrow(roomId);
-        Member member = findMemberByEmailOrThrow(memberEmail);
-        findParticipantByRoomIdAndEmailOrThrow(roomId, memberEmail);
+        Member member = memberService.getByIdOrThrow(memberId);
+        findParticipantByRoomIdAndMemberIdOrThrow(roomId, memberId);
         long readCount = Math.max(chatParticipantRepository.countByChatRoom_Id(roomId) - 1, 0);
 
         ChatMessage chatMessage = chatMessageRepository.save(ChatMessage.createMessage(chatRoom, member, message, readCount));
@@ -43,8 +43,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     // 채팅 메시지 목록 조회
     @Override
-    public List<ChatMessageResponseDto> list(Long roomId, String memberEmail) {
-        findParticipantByRoomIdAndEmailOrThrow(roomId, memberEmail);
+    public List<ChatMessageResponseDto> list(Long roomId, Long memberId) {
+        findParticipantByRoomIdAndMemberIdOrThrow(roomId, memberId);
 
         return chatMessageRepository.findByChatRoom_IdOrderByIdAsc(roomId).stream()
                 .map(ChatMessageResponseDto::from)
@@ -54,9 +54,9 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     // 채팅 메시지 수정
     @Override
     @Transactional
-    public ChatMessageResponseDto edit(Long messageId, String memberEmail, String message) {
+    public ChatMessageResponseDto edit(Long messageId, Long memberId, String message) {
         ChatMessage chatMessage = findMessageByIdOrThrow(messageId);
-        validateEditable(chatMessage, memberEmail);
+        validateEditable(chatMessage, memberId);
         chatMessage.edit(message);
 
         return ChatMessageResponseDto.from(chatMessage);
@@ -65,9 +65,9 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     // 채팅 메시지 삭제
     @Override
     @Transactional
-    public ChatMessageResponseDto delete(Long messageId, String memberEmail) {
+    public ChatMessageResponseDto delete(Long messageId, Long memberId) {
         ChatMessage chatMessage = findMessageByIdOrThrow(messageId);
-        validateEditable(chatMessage, memberEmail);
+        validateEditable(chatMessage, memberId);
         chatMessage.delete();
 
         return ChatMessageResponseDto.from(chatMessage);
@@ -78,13 +78,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "채팅방이 존재하지 않습니다."));
     }
 
-    private Member findMemberByEmailOrThrow(String memberEmail) {
-        return memberRepository.findByEmail(memberEmail)
-                .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "회원이 존재하지 않습니다."));
-    }
-
-    private ChatParticipant findParticipantByRoomIdAndEmailOrThrow(Long roomId, String memberEmail) {
-        return chatParticipantRepository.findByChatRoom_IdAndMember_Email(roomId, memberEmail)
+    private ChatParticipant findParticipantByRoomIdAndMemberIdOrThrow(Long roomId, Long memberId) {
+        return chatParticipantRepository.findByChatRoom_IdAndMember_Id(roomId, memberId)
                 .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "채팅방 참여자가 아닙니다."));
     }
 
@@ -93,8 +88,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "메시지가 존재하지 않습니다."));
     }
 
-    private void validateEditable(ChatMessage chatMessage, String memberEmail) {
-        if (!chatMessage.isWrittenBy(memberEmail)) {
+    private void validateEditable(ChatMessage chatMessage, Long memberId) {
+        if (!chatMessage.isWrittenBy(memberId)) {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "본인이 작성한 메시지만 수정 또는 삭제할 수 있습니다.");
         }
         if (chatMessage.isDeletedMessage()) {

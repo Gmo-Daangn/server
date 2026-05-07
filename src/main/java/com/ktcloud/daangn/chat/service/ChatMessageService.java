@@ -5,11 +5,11 @@ import com.ktcloud.daangn.chat.dto.ChatMessageResponseDto;
 import java.util.List;
 
 public interface ChatMessageService {
-    ChatMessageResponseDto create(Long roomId, String memberEmail, String message);
+    ChatMessageResponseDto create(Long roomId, Long memberId, String message);
 
-    List<ChatMessageResponseDto> list(Long roomId, String memberEmail);
+    List<ChatMessageResponseDto> list(Long roomId, Long memberId);
 
-    ChatMessageResponseDto edit(Long messageId, String memberEmail, String message);
+    ChatMessageResponseDto edit(Long messageId, Long memberId, String message);
 
-    ChatMessageResponseDto delete(Long messageId, String memberEmail);
+    ChatMessageResponseDto delete(Long messageId, Long memberId);
 }

@@ -14,5 +14,5 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     Optional<ChatMessage> findTopByChatRoom_IdOrderByIdDesc(Long roomId);
 
-    long countByChatRoom_IdAndMember_EmailNotAndReadCountGreaterThan(Long roomId, String memberEmail, long readCount);
+    long countByChatRoom_IdAndMember_IdNotAndReadCountGreaterThan(Long roomId, Long memberId, long readCount);
 }

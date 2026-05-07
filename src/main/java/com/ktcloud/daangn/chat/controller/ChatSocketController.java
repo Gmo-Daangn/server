@@ -21,7 +21,7 @@ public class ChatSocketController {
     // 채팅 메시지 전송 처리
     @MessageMapping("/chat/rooms/{roomId}/messages")
     public void create(@DestinationVariable Long roomId, @Valid @Payload ChatMessageWriteRequestDto dto) {
-        ChatMessageResponseDto response = chatMessageService.create(roomId, dto.memberEmail(), dto.message());
+        ChatMessageResponseDto response = chatMessageService.create(roomId, dto.memberId(), dto.message());
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + roomId + "/messages", response);
     }
 }

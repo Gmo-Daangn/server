@@ -75,7 +75,7 @@ class ChatIntegrationTest {
         return new ChatMessageResponseDto(
                 readLong(json, "$.messageId"),
                 readLong(json, "$.roomId"),
-                JsonPath.read(json, "$.senderEmail"),
+                readLong(json, "$.senderId"),
                 JsonPath.read(json, "$.message"),
                 JsonPath.read(json, "$.edited"),
                 JsonPath.read(json, "$.deleted"),
@@ -117,17 +117,17 @@ class ChatIntegrationTest {
         try {
             stompSession.send(
                     "/pub/chat/rooms/" + roomId + "/messages",
-                    new ChatMessageWriteRequestDto(members.senderEmail(), "hello integration")
+                    new ChatMessageWriteRequestDto(members.senderId(), "hello integration")
             );
 
             ChatMessageResponseDto sentMessage = pollMessage(messageEvents);
             assertThat(sentMessage.roomId()).isEqualTo(roomId);
-            assertThat(sentMessage.senderEmail()).isEqualTo(members.senderEmail());
+            assertThat(sentMessage.senderId()).isEqualTo(members.senderId());
             assertThat(sentMessage.message()).isEqualTo("hello integration");
             assertThat(sentMessage.unreadCount()).isEqualTo(1);
 
             mockMvc.perform(get("/api/v1/chat/messages/{roomId}", roomId)
-                            .param("memberEmail", members.senderEmail()))
+                            .param("memberId", members.senderId().toString()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.Data[0].messageId").value(sentMessage.messageId()))
                     .andExpect(jsonPath("$.Data[0].message").value("hello integration"));
@@ -137,18 +137,18 @@ class ChatIntegrationTest {
                     .andExpect(jsonPath("$.Data.roomId").value(roomId))
                     .andExpect(jsonPath("$.Data.created").value(false));
 
-            mockMvc.perform(post("/api/v1/chat/rooms/{roomId}/read", roomId)
+            mockMvc.perform(post("/api/v1/chat/rooms/read/{roomId}", roomId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
-                                      "memberEmail": "%s"
+                                      "memberId": %d
                                     }
-                                    """.formatted(members.receiverEmail())))
+                                    """.formatted(members.receiverId())))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.Data.readMessageCount").value(1));
 
             mockMvc.perform(get("/api/v1/chat/messages/{roomId}", roomId)
-                            .param("memberEmail", members.receiverEmail()))
+                            .param("memberId", members.receiverId().toString()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.Data[0].unreadCount").value(0));
 
@@ -156,10 +156,10 @@ class ChatIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
-                                      "memberEmail": "%s",
+                                      "memberId": %d,
                                       "message": "edited integration"
                                     }
-                                    """.formatted(members.senderEmail())))
+                                    """.formatted(members.senderId())))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.Data.message").value("edited integration"))
                     .andExpect(jsonPath("$.Data.edited").value(true));
@@ -173,9 +173,9 @@ class ChatIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
-                                      "memberEmail": "%s"
+                                      "memberId": %d
                                     }
-                                    """.formatted(members.senderEmail())))
+                                    """.formatted(members.senderId())))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.Data.deleted").value(true))
                     .andExpect(jsonPath("$.Data.message").value("삭제된 메시지입니다."));
@@ -192,17 +192,13 @@ class ChatIntegrationTest {
 
     private TestMembers saveMembers() {
         String suffix = UUID.randomUUID().toString().replace("-", "");
-        TestMembers members = new TestMembers(
-                "chat-it-sender-" + suffix + "@test.com",
-                "chat-it-receiver-" + suffix + "@test.com"
-        );
-
-        transactionTemplate.executeWithoutResult(_ -> {
-            entityManager.persist(member(members.senderEmail(), "sender"));
-            entityManager.persist(member(members.receiverEmail(), "receiver"));
+        return transactionTemplate.execute(_ -> {
+            Member sender = member("chat-it-sender-" + suffix + "@test.com", "sender");
+            Member receiver = member("chat-it-receiver-" + suffix + "@test.com", "receiver");
+            entityManager.persist(sender);
+            entityManager.persist(receiver);
+            return new TestMembers(sender.getId(), receiver.getId());
         });
-
-        return members;
     }
 
     private Member member(String email, String nickname) {
@@ -211,7 +207,7 @@ class ChatIntegrationTest {
                 .password("password")
                 .nickName(nickname)
                 .memberRole(MemberRole.MEMBER)
-                .providerToken(ProviderToken.Local)
+                .providerToken(ProviderToken.LOCAL)
                 .createAt(LocalDateTime.now())
                 .build();
     }
@@ -221,11 +217,11 @@ class ChatIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
-                          "memberEmail": "%s",
-                          "targetMemberEmail": "%s",
+                          "memberId": %d,
+                          "targetMemberId": %d,
                           "productId": %d
                         }
-                        """.formatted(members.senderEmail(), members.receiverEmail(), productId)));
+                        """.formatted(members.senderId(), members.receiverId(), productId)));
     }
 
     private Long readLong(MvcResult result, String expression) throws Exception {
@@ -241,8 +237,8 @@ class ChatIntegrationTest {
     }
 
     private record TestMembers(
-            String senderEmail,
-            String receiverEmail
+            Long senderId,
+            Long receiverId
     ) {
     }
 

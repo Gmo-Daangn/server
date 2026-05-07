@@ -31,7 +31,7 @@ public class ChatRoomRepositoryImpl implements ChatRoomRepository {
     }
 
     @Override
-    public List<ChatRoom> findExistingDirectRoom(String memberEmail, String targetMemberEmail, Long productId, ChatType type) {
+    public List<ChatRoom> findExistingDirectRoom(Long memberId, Long targetMemberId, Long productId, ChatType type) {
         return entityManager.createQuery("""
                         select room
                         from ChatRoom room
@@ -44,12 +44,12 @@ public class ChatRoomRepositoryImpl implements ChatRoomRepository {
                           and room.id in (
                             select participant.chatRoom.id
                             from ChatParticipant participant
-                            where participant.member.email = :memberEmail
+                            where participant.member.id = :memberId
                           )
                           and room.id in (
                             select participant.chatRoom.id
                             from ChatParticipant participant
-                            where participant.member.email = :targetMemberEmail
+                            where participant.member.id = :targetMemberId
                           )
                           and (
                             (:productId is null and room.productId is null)
@@ -59,8 +59,8 @@ public class ChatRoomRepositoryImpl implements ChatRoomRepository {
                         """,
                         ChatRoom.class
                 )
-                .setParameter("memberEmail", memberEmail)
-                .setParameter("targetMemberEmail", targetMemberEmail)
+                .setParameter("memberId", memberId)
+                .setParameter("targetMemberId", targetMemberId)
                 .setParameter("productId", productId)
                 .setParameter("type", type)
                 .getResultList();

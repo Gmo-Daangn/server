@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 public record ChatMessageResponseDto(
         Long messageId,
         Long roomId,
-        String senderEmail,
+        Long senderId,
         String message,
         boolean edited,
         boolean deleted,
@@ -18,7 +18,7 @@ public record ChatMessageResponseDto(
         return new ChatMessageResponseDto(
                 chatMessage.getId(),
                 chatMessage.getChatRoom().getId(),
-                chatMessage.getMember().getEmail(),
+                chatMessage.getMember().getId(),
                 chatMessage.getMessage(),
                 chatMessage.isEdited(),
                 chatMessage.isDeleted(),
