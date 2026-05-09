@@ -1,4 +1,4 @@
-package com.ktcloud.daangn.config.dto;
+package com.ktcloud.daangn.common.dto;
 
 import org.springframework.http.HttpStatus;
 

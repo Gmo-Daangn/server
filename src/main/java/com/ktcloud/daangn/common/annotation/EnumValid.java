@@ -1,4 +1,4 @@
-package com.ktcloud.daangn.config.annotation;
+package com.ktcloud.daangn.common.annotation;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

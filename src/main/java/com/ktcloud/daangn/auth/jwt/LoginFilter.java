@@ -2,7 +2,7 @@ package com.ktcloud.daangn.auth.jwt;
 
 import com.ktcloud.daangn.auth.dto.AuthLoginRequestDto;
 import com.ktcloud.daangn.auth.dto.TokenResponseDto;
-import com.ktcloud.daangn.config.dto.BaseResponse;
+import com.ktcloud.daangn.common.dto.BaseResponse;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
