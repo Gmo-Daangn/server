@@ -68,7 +68,7 @@ class NotificationServiceIntegrationTest {
         @DisplayName("[HAPPY] 알림 생성 후 조회 시 DTO로 반환된다")
         void createThenGet_success() {
             Member member = createMember("test@test.com");
-            createTemplate("ORDER", "안녕 {templateText}");
+            createTemplate("ORDER", "맥북 {templateText}");
 
             notificationService.createAndSendNotification(
                     new NotificationEvent(member.getId(), "ORDER", 99L, "주문완료")
@@ -79,13 +79,13 @@ class NotificationServiceIntegrationTest {
             assertThat(result).hasSize(1);
             assertThat(result.getFirst())
                     .extracting("receiverId", "templateType", "message", "isRead")
-                    .containsExactly(member.getId(), "ORDER", "주문완료", false);
+                    .containsExactly(member.getId(), "ORDER", "맥북 주문완료", false);
         }
 
         @Test
         @DisplayName("[Exception] 존재하지 않는 회원이면 예외가 발생한다")
         void create_memberMissing_throws() {
-            createTemplate("ORDER", "안녕 {templateText}");
+            createTemplate("ORDER", "맥북 {templateText}");
 
             assertThatThrownBy(() -> notificationService.createAndSendNotification(
                     new NotificationEvent(999999L, "ORDER", 1L, "x")
@@ -134,9 +134,9 @@ class NotificationServiceIntegrationTest {
         @DisplayName("[HAPPY] 삭제 처리 후 활성 목록에서 제외된다")
         void delete_success() {
             Member member = createMember("noti-delete@test.com");
-            createTemplate("MARKET", "거래 {templateText}");
+            createTemplate("ORDER", "거래 {templateText}");
             notificationService.createAndSendNotification(
-                    new NotificationEvent(member.getId(), "MARKET", 33L, "완료")
+                    new NotificationEvent(member.getId(), "ORDER", 33L, "완료")
             );
 
             Long notificationId = notificationService.getNotifications(member.getId()).getFirst().id();
