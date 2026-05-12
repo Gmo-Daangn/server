@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.5'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.asciidoctor.jvm.convert' version '4.0.5'
 }
 
 group = 'com.ktcloud'
@@ -19,6 +20,15 @@ repositories {
 
 configurations {
 	mockitoAgent
+	asciidoctorExtensions
+}
+
+asciidoctorj {
+	version = "3.0.0"
+}
+
+ext {
+	snippetsDir = file('build/generated-snippets')
 }
 
 dependencies {
@@ -58,9 +68,29 @@ dependencies {
 	mockitoAgent('org.mockito:mockito-core') {
 		transitive = false
 	}
+
+	//Spring REST Docs
+	asciidoctorExtensions 'org.springframework.restdocs:spring-restdocs-asciidoctor:4.0.0'
+	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc:4.0.0'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
 	jvmArgs += "-javaagent:${configurations.mockitoAgent.asPath}"
+	outputs.dir snippetsDir
+}
+
+tasks.named("asciidoctor") {
+	configurations = ["asciidoctorExtensions"]
+	inputs.dir snippetsDir
+	dependsOn test
+}
+
+tasks.named("bootJar") {
+	dependsOn tasks.named("asciidoctor")
+
+	copy {
+		from asciidoctor.outputDir
+		into "src/main/resources/static/docs"
+	}
 }
