@@ -1,6 +1,7 @@
 package com.ktcloud.daangn.member.service;
 
 import com.ktcloud.daangn.config.exception.InvalidInputException;
+import com.ktcloud.daangn.member.dto.MemberInfoResponseDto;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,5 +35,11 @@ public class MemberServiceImpl implements MemberService{
     @Override
     public Optional<Member> getByEmail(String email) {
         return memberRepository.findByEmail(email);
+    }
+
+    @Override
+    public MemberInfoResponseDto getMyInfo(Long id) {
+        Member findMember = getByIdOrThrow(id);
+        return MemberInfoResponseDto.from(findMember);
     }
 }

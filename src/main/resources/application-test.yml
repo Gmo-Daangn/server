@@ -19,3 +19,6 @@ spring:
 logging:
   pattern:
     console: "[%d{HH:mm:ss.SSS}][%-5level][%logger.%method:line%line] - %msg%n"
+
+jwt:
+  access_secret: testAccessSecretKeyForTestingPurposesMinimum256Bits

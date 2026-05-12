@@ -1,9 +1,8 @@
 package com.ktcloud.daangn.auth.controller;
 
-import com.ktcloud.daangn.config.dto.BaseResponse;
-import com.ktcloud.daangn.auth.dto.AuthLoginRequestDto;
 import com.ktcloud.daangn.auth.dto.AuthSignupRequestDto;
 import com.ktcloud.daangn.auth.service.AuthService;
+import com.ktcloud.daangn.config.dto.BaseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,10 +20,5 @@ public class AuthController {
     @PostMapping
     public BaseResponse<String> signup(@RequestBody @Valid AuthSignupRequestDto dto) {
         return BaseResponse.success(authService.signup(dto));
-    }
-
-    @PostMapping("/login")
-    public BaseResponse<String> login(@RequestBody @Valid AuthLoginRequestDto dto) {
-        return BaseResponse.success(authService.login(dto));
     }
 }

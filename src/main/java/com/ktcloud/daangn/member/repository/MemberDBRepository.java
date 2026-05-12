@@ -15,11 +15,10 @@ public class MemberDBRepository implements MemberRepository {
 
     @Override
     public Boolean existsByEmail(String email) {
-        return em.createQuery("select m from Member m where m.email = :email", Member.class)
+        return !em.createQuery("select m from Member m where m.email = :email", Member.class)
                 .setParameter("email", email)
-                .getResultStream()
-                .findAny()
-                .isPresent();
+                .getResultList()
+                .isEmpty();
     }
 
     @Override
@@ -37,7 +36,8 @@ public class MemberDBRepository implements MemberRepository {
     public Optional<Member> findByEmail(String email) {
         return em.createQuery("select m from Member m where m.email = :email", Member.class)
                 .setParameter("email", email)
-                .getResultStream()
-                .findAny();
+                .getResultList()
+                .stream()
+                .findFirst();
     }
 }
