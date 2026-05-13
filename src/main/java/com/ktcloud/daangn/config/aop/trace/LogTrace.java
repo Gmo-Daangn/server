@@ -1,11 +1,16 @@
 package com.ktcloud.daangn.config.aop.trace;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 public class LogTrace {
+
+    /**
+     * {@code logback-spring.xml}의 {@code com.ktcloud.daangn.trace} 로거와 이름이 일치해야 합니다.
+     */
+    private static final Logger log = LoggerFactory.getLogger("com.ktcloud.daangn.trace");
 
     private static final String START_PREFIX = "-->";
     private static final String COMPLETE_PREFIX = "<--";
@@ -43,11 +48,11 @@ public class LogTrace {
                     addSpace(COMPLETE_PREFIX, traceId.getLevel()) + status.getMethodSignature(),
                     resultTimeMs);
         } else {
-            log.info("[{}] {} time={}ms ex={}",
+            log.error("[{}] {} time={}ms",
                     traceId.getId(),
                     addSpace(EX_PREFIX, traceId.getLevel()) + status.getMethodSignature(),
                     resultTimeMs,
-                    e.getMessage());
+                    e);
         }
 
         releaseTraceId();
