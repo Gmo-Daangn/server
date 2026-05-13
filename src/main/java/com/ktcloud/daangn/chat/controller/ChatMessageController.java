@@ -21,6 +21,8 @@ public class ChatMessageController {
     private final SimpMessagingTemplate messagingTemplate;
 
     // 채팅 메시지 목록 조회
+    // TODO: JWT 인증 도입 후 memberId를 `@RequestParam이` 아닌
+    //       SecurityContextHolder 또는 JWT 토큰에서 추출하도록 변경 필요 (보안 취약점)
     @GetMapping("/messages/{roomId}")
     public BaseResponse<List<ChatMessageResponseDto>> list(
             @PathVariable Long roomId,

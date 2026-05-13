@@ -56,6 +56,9 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     }
 
     // 내가 참여한 채팅방 목록 조회
+    // TODO: N+1 성능 최적화 필요 - findDirectRooms에서 chatRoom 수 N에 비례해 3N+1 쿼리 발생.
+    //       toRoomListResponse 내 참여자 조회, 최근 메시지 조회, 미읽음 수 집계를
+    //       단일 배치 쿼리(JOIN FETCH / 집계 JPQL)로 교체 필요.
     @Override
     public List<ChatRoomListResponseDto> findDirectRooms(Long memberId) {
         memberService.getByIdOrThrow(memberId);
@@ -81,7 +84,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
 
         unreadMessages.forEach(ChatMessage::markRead);
 
-        return new ChatRoomReadResponseDto(roomId, dto.memberId(), unreadMessages.size());
+        return new ChatRoomReadResponseDto(roomId, dto.memberId(), (long) unreadMessages.size());
     }
 
     private ChatRoomEnterResponseDto createRoom(Long productId, Member member, Member targetMember) {
