@@ -1,4 +1,4 @@
-package com.ktcloud.daangn.config.exception;
+package com.ktcloud.daangn.common.exception;
 
 import lombok.Getter;
 

@@ -1,8 +1,7 @@
 package com.ktcloud.daangn.auth.service;
 
-import com.ktcloud.daangn.config.exception.InvalidInputException;
-import com.ktcloud.daangn.config.valueObject.Address;
-import com.ktcloud.daangn.auth.dto.AuthLoginRequestDto;
+import com.ktcloud.daangn.common.exception.InvalidInputException;
+import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.auth.dto.AuthSignupRequestDto;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
@@ -14,8 +13,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

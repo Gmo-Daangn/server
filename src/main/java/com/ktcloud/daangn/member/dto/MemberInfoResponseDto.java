@@ -1,6 +1,6 @@
 package com.ktcloud.daangn.member.dto;
 
-import com.ktcloud.daangn.config.valueObject.Address;
+import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.member.entity.Member;
 
 public record MemberInfoResponseDto(

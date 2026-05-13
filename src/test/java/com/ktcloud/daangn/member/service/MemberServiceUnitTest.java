@@ -1,7 +1,7 @@
 package com.ktcloud.daangn.member.service;
 
-import com.ktcloud.daangn.config.exception.InvalidInputException;
-import com.ktcloud.daangn.config.valueObject.Address;
+import com.ktcloud.daangn.common.exception.InvalidInputException;
+import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.member.dto.MemberInfoResponseDto;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.repository.MemberRepository;

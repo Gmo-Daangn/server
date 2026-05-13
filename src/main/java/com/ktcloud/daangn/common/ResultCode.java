@@ -1,4 +1,4 @@
-package com.ktcloud.daangn.config;
+package com.ktcloud.daangn.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
