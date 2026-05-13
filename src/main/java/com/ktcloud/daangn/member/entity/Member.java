@@ -1,5 +1,6 @@
 package com.ktcloud.daangn.member.entity;
 
+import com.ktcloud.daangn.common.valueObject.Address;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,7 +23,9 @@ public class Member {
     private String email;
     private String password;
     private String nickName;
-    private String Location; // ERD를 통해서 테이블 분리 혹은 외부 api를 통한 값 적용
+
+    @Embedded
+    private Address address;
 
     @Enumerated(EnumType.STRING)
     private MemberRole memberRole;
