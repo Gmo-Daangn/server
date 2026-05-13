@@ -1,4 +1,4 @@
-package com.ktcloud.daangn.config.valueObject;
+package com.ktcloud.daangn.common.valueObject;
 
 import jakarta.persistence.Embeddable;
 import jakarta.validation.constraints.NotBlank;

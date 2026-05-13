@@ -1,6 +1,6 @@
 package com.ktcloud.daangn.auth.jwt;
 
-import com.ktcloud.daangn.config.dto.BaseResponse;
+import com.ktcloud.daangn.common.dto.BaseResponse;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

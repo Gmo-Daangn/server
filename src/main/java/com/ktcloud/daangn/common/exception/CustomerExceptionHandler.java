@@ -1,7 +1,7 @@
-package com.ktcloud.daangn.config.exception;
+package com.ktcloud.daangn.common.exception;
 
-import com.ktcloud.daangn.config.ResultCode;
-import com.ktcloud.daangn.config.dto.BaseResponse;
+import com.ktcloud.daangn.common.ResultCode;
+import com.ktcloud.daangn.common.dto.BaseResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
