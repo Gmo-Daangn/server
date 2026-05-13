@@ -58,7 +58,7 @@ public class LoggerAspect {
         String methodName = joinPoint.getSignature().getName();
         String args = Arrays.stream(joinPoint.getArgs())
                 .filter(this::shouldLogArgument)
-                .map(String::valueOf)
+                .map(this::summarizeArgument)
                 .collect(Collectors.joining(", "));
         return className + "." + methodName + "(" + args + ")";
     }
@@ -72,5 +72,25 @@ public class LoggerAspect {
                 && !name.startsWith("org.apache.")
                 && !name.startsWith("jakarta.servlet.")
                 && !name.startsWith("javax.servlet.");
+    }
+
+    private String summarizeArgument(Object arg) {
+        if (arg == null) {
+            return "null";
+        }
+
+        if (arg instanceof Number || arg instanceof Boolean || arg instanceof Character) {
+            return String.valueOf(arg);
+        }
+
+        if (arg instanceof String str) {
+            return "String(len=" + str.length() + ")";
+        }
+
+        if (arg instanceof java.util.Collection<?> col) {
+            return arg.getClass().getSimpleName() + "(size=" + col.size() + ")";
+        }
+
+        return arg.getClass().getSimpleName();
     }
 }
