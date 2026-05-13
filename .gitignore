@@ -238,6 +238,9 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+### Application / runtime logs
+/logs/
+
 ### env
 .env
 
