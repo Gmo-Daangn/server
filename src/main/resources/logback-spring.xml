@@ -19,7 +19,7 @@
         </rollingPolicy>
     </appender>
 
-    <logger name="com.ktcloud.daangn.trace" level="INFO" additivity="false">
+    <logger name="com.ktcloud.daangn.config.aop.trace" level="INFO" additivity="false">
         <appender-ref ref="TRACE_AOP_FILE"/>
     </logger>
 
