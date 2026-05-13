@@ -1,6 +1,7 @@
 package com.ktcloud.daangn.post.dto;
 
-public record PostCreateResponse(
+public record PostCreateResponseDto(
         Long postId,
         String message
-) {}
+) {
+}

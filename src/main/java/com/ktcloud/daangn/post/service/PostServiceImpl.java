@@ -1,7 +1,7 @@
 package com.ktcloud.daangn.post.service;
 
 import com.ktcloud.daangn.member.entity.Member;
-import com.ktcloud.daangn.member.repository.MemberRepository;
+import com.ktcloud.daangn.member.service.MemberService;
 import com.ktcloud.daangn.post.dto.*;
 import com.ktcloud.daangn.post.entity.Post;
 import com.ktcloud.daangn.post.repository.PostRepository;
@@ -17,72 +17,78 @@ import org.springframework.transaction.annotation.Transactional;
 public class PostServiceImpl implements PostService {
 
     private final PostRepository postRepository;
-    private final MemberRepository memberRepository;
+    private final MemberService memberService;
 
     @Override
     @Transactional
-    public PostCreateResponse createPost(PostRequest request) {
-        Member member = memberRepository.findById(request.memberId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+    public PostCreateResponseDto createPost(PostRequestDto request) {
+        Member member = memberService.getByIdOrThrow(request.memberId());
 
-        Post post = new Post(
-                member.getId(),
-                request.title(),
-                request.content(),
-                request.price(),
-                member.getLocation()
+        Post savedPost = postRepository.save(
+                Post.create(
+                        member,
+                        request.title(),
+                        request.content(),
+                        request.price(),
+                        member.getAddress().city())
         );
 
-        Post savedPost = postRepository.save(post);
-
-        return new PostCreateResponse(
+        return new PostCreateResponseDto(
                 savedPost.getId(),
                 "게시글 등록 성공 (ID: " + savedPost.getId() + ")"
         );
     }
 
     @Override
-    public PostPageResponse getPostList(Pageable pageable) {
+    public PostPageResponseDto getPostList(Pageable pageable) {
         Page<Post> page = postRepository.findAll(pageable);
 
-        return new PostPageResponse(
-                page.getContent().stream()
-                        .map(post -> new PostListResponse(
-                                post.getId(),
-                                post.getTitle(),
-                                post.getPrice(),
-                                post.getLocation(),
-                                post.getViewCount(),
-                                post.getCreatedAt()
-                        ))
-                        .toList(),
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages()
-        );
+        return PostPageResponseDto.from(page);
     }
 
     @Override
-    public PostDetailResponse getPostDetail(Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
-
-        Member member = memberRepository.findById(post.getMemberId())
-                .orElseThrow(() -> new IllegalArgumentException("작성자 정보를 찾을 수 없습니다."));
-
+    @Transactional
+    public PostDetailResponseDto getPostDetail(Long postId) {
+        Post post = getPostOrThrow(postId);
         post.increaseViewCount();
 
-        return new PostDetailResponse(
-                post.getId(),
-                member.getNickName(),
-                post.getTitle(),
-                post.getContent(),
-                post.getPrice(),
-                post.getLocation(),
-                post.getStatus(),
-                post.getViewCount(),
-                post.getCreatedAt()
+        return PostDetailResponseDto.from(post);
+    }
+
+    @Override
+    @Transactional
+    public PostDetailResponseDto updatePost(Long postId, PostUpdateRequestDto request) {
+        Post post = getPostOrThrow(postId);
+        validateOwner(post, request.memberId());
+
+        post.update(
+                request.title(),
+                request.content(),
+                request.price(),
+                request.status()
         );
+
+        return PostDetailResponseDto.from(post);
+    }
+
+    @Override
+    @Transactional
+    public String deletePost(Long postId, Long memberId) {
+        Post post = getPostOrThrow(postId);
+        validateOwner(post, memberId);
+
+        postRepository.delete(post);
+        return "게시글 삭제 성공";
+    }
+
+    private Post getPostOrThrow(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
+    }
+
+    private void validateOwner(Post post, Long memberId) {
+        if (!post.isOwner(memberId)) {
+            throw new IllegalArgumentException("게시글 작성자만 처리할 수 있습니다.");
+        }
     }
 }
