@@ -7,9 +7,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class LogTrace {
 
-    /**
-     * {@code logback-spring.xml}의 {@code com.ktcloud.daangn.trace} 로거와 이름이 일치해야 합니다.
-     */
     private static final Logger log = LoggerFactory.getLogger("com.ktcloud.daangn.trace");
 
     private static final String START_PREFIX = "-->";
