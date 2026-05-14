@@ -1,6 +1,6 @@
 package com.ktcloud.daangn.notification.controller;
 
-import com.ktcloud.daangn.config.dto.BaseResponse;
+import com.ktcloud.daangn.common.dto.BaseResponse;
 import com.ktcloud.daangn.notification.dto.NotificationResponseDto;
 import com.ktcloud.daangn.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;

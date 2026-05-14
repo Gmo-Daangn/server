@@ -1,6 +1,6 @@
 package com.ktcloud.daangn.member.entity;
 
-import com.ktcloud.daangn.config.valueObject.Address;
+import com.ktcloud.daangn.common.valueObject.Address;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -5,7 +5,7 @@ import com.ktcloud.daangn.auth.dto.CustomUser;
 import com.ktcloud.daangn.auth.jwt.JwtAccessDeniedHandler;
 import com.ktcloud.daangn.auth.jwt.JwtAuthenticationEntryPoint;
 import com.ktcloud.daangn.auth.jwt.JwtTokenProvider;
-import com.ktcloud.daangn.config.valueObject.Address;
+import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.member.dto.MemberInfoResponseDto;
 import com.ktcloud.daangn.member.service.MemberService;
 import org.junit.jupiter.api.DisplayName;

@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Standalone Chat Client</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: sans-serif;
+        background: #f5f5f5;
+        color: #111;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 320px 360px 1fr;
+        gap: 16px;
+        padding: 16px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 16px;
+      }
+      h2 {
+        margin: 0 0 12px;
+        font-size: 18px;
+      }
+      input, button {
+        font: inherit;
+      }
+      input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        padding: 8px 10px;
+        border: 1px solid #bbb;
+        border-radius: 4px;
+        background: #f0f0f0;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .form, .message-form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .status, .empty {
+        margin-top: 12px;
+        padding: 8px 10px;
+        background: #fafafa;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        color: #555;
+        word-break: break-word;
+      }
+      .session, .chat-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .session {
+        margin-top: 12px;
+      }
+      .chat-meta {
+        margin-bottom: 12px;
+      }
+      .chat-log {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 320px;
+        max-height: 560px;
+        overflow: auto;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #fafafa;
+        margin-bottom: 12px;
+      }
+      .message {
+        max-width: 85%;
+        padding: 8px 10px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        background: #fff;
+      }
+      .message.outgoing {
+        align-self: flex-end;
+        background: #eef6ff;
+      }
+      .message.incoming {
+        align-self: flex-start;
+      }
+      .message-head,
+      .message-meta,
+      .message-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .message-head {
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+      .message-meta {
+        margin-top: 6px;
+        color: #666;
+        font-size: 12px;
+      }
+      .message-actions button {
+        padding: 2px 6px;
+        font-size: 12px;
+      }
+      .message-body.deleted {
+        color: #777;
+      }
+      .message-form {
+        display: grid;
+        grid-template-columns: 1fr auto;
+      }
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="layout">
+      <section class="card">
+        <h2>로그인</h2>
+        <form id="login-form" class="form">
+          <input id="email-input" type="email" placeholder="내 이메일" required />
+          <input id="password-input" type="password" placeholder="비밀번호" required />
+          <button id="login-button" type="submit">로그인</button>
+        </form>
+        <div id="status-box" class="status">상태 없음</div>
+        <div id="session-box" class="session" hidden>
+          <div id="session-email"></div>
+          <button id="logout-button" type="button">로그아웃</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>채팅방 입장</h2>
+        <form id="chat-room-form" class="form">
+          <input id="member-id-input" type="number" min="1" placeholder="내 회원 ID" required />
+          <input id="target-member-id-input" type="number" min="1" placeholder="상대 회원 ID" required />
+          <input id="product-id-input" type="number" min="1" placeholder="상품 ID(선택)" />
+          <button id="enter-room-button" type="submit">채팅 시작</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>채팅창</h2>
+        <div class="chat-meta">
+          <span id="selected-member-label">상대: -</span>
+          <span id="room-id-label">room: -</span>
+        </div>
+        <div id="chat-log" class="chat-log">
+          <div class="empty">메시지가 없습니다.</div>
+        </div>
+        <form id="message-form" class="message-form">
+          <input id="message-input" type="text" placeholder="메시지 입력" disabled />
+          <button id="send-button" type="submit" disabled>보내기</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.2.0/bundles/stomp.umd.min.js"></script>
+    <script>
+      const API_BASE_URL = "http://localhost:8080";
+      const WS_URL = "ws://localhost:8080/api/ws-stomp";
+
+      const state = {
+        currentUser: null,
+        selectedMemberLabel: null,
+        activeRoomId: null,
+        messages: [],
+        editingMessageId: null,
+        stompClient: null,
+        busy: false
+      };
+
+      const loginForm = document.getElementById("login-form");
+      const emailInput = document.getElementById("email-input");
+      const passwordInput = document.getElementById("password-input");
+      const loginButton = document.getElementById("login-button");
+      const statusBox = document.getElementById("status-box");
+      const sessionBox = document.getElementById("session-box");
+      const sessionEmail = document.getElementById("session-email");
+      const logoutButton = document.getElementById("logout-button");
+      const chatRoomForm = document.getElementById("chat-room-form");
+      const memberIdInput = document.getElementById("member-id-input");
+      const targetMemberIdInput = document.getElementById("target-member-id-input");
+      const productIdInput = document.getElementById("product-id-input");
+      const enterRoomButton = document.getElementById("enter-room-button");
+      const selectedMemberLabel = document.getElementById("selected-member-label");
+      const roomIdLabel = document.getElementById("room-id-label");
+      const chatLog = document.getElementById("chat-log");
+      const messageForm = document.getElementById("message-form");
+      const messageInput = document.getElementById("message-input");
+      const sendButton = document.getElementById("send-button");
+
+      function setStatus(message) {
+        statusBox.textContent = message || "상태 없음";
+      }
+
+      function setBusy(busy) {
+        state.busy = busy;
+        loginButton.disabled = busy;
+        enterRoomButton.disabled = busy || !state.currentUser;
+      }
+
+      function parseMemberId(message) {
+        const matched = String(message || "").match(/ID\s*:\s*(\d+)/);
+        if (!matched) {
+          throw new Error("로그인 응답에서 회원 ID를 찾을 수 없습니다.");
+        }
+
+        return Number(matched[1]);
+      }
+
+      async function request(path, options = {}) {
+        const response = await fetch(`${API_BASE_URL}${path}`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {})
+          },
+          ...options
+        });
+
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.message || "요청 처리 중 오류가 발생했습니다.");
+        }
+
+        return payload;
+      }
+
+      function renderSession() {
+        if (state.currentUser) {
+          sessionBox.hidden = false;
+          sessionEmail.textContent = `${state.currentUser.email} (ID: ${state.currentUser.memberId})`;
+          memberIdInput.value = state.currentUser.memberId;
+          memberIdInput.readOnly = true;
+        } else {
+          sessionBox.hidden = true;
+          sessionEmail.textContent = "";
+          memberIdInput.value = "";
+          memberIdInput.readOnly = false;
+        }
+        enterRoomButton.disabled = state.busy || !state.currentUser;
+      }
+
+      function formatTime(value) {
+        if (!value) {
+          return "-";
+        }
+
+        return new Date(value).toLocaleString("ko-KR");
+      }
+
+      function upsertMessage(message) {
+        const index = state.messages.findIndex((item) => item.messageId === message.messageId);
+        if (index >= 0) {
+          state.messages[index] = message;
+        } else {
+          state.messages.push(message);
+        }
+
+        state.messages.sort((left, right) => left.messageId - right.messageId);
+      }
+
+      function renderMessages() {
+        selectedMemberLabel.textContent = `상대: ${state.selectedMemberLabel || "-"}`;
+        roomIdLabel.textContent = `room: ${state.activeRoomId || "-"}`;
+        messageInput.disabled = !state.activeRoomId;
+        sendButton.disabled = !state.activeRoomId;
+        sendButton.textContent = state.editingMessageId ? "수정 저장" : "보내기";
+        chatLog.innerHTML = "";
+
+        if (state.messages.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "메시지가 없습니다.";
+          chatLog.appendChild(empty);
+          return;
+        }
+
+        state.messages.forEach((message) => {
+          const item = document.createElement("div");
+          item.className = `message ${message.senderId === state.currentUser?.memberId ? "outgoing" : "incoming"}`;
+
+          const head = document.createElement("div");
+          head.className = "message-head";
+
+          const sender = document.createElement("strong");
+          sender.textContent = `member #${message.senderId}`;
+          head.appendChild(sender);
+
+          if (message.senderId === state.currentUser?.memberId && !message.deleted) {
+            const actions = document.createElement("div");
+            actions.className = "message-actions";
+
+            const editButton = document.createElement("button");
+            editButton.type = "button";
+            editButton.textContent = "수정";
+            editButton.addEventListener("click", () => editMessage(message));
+
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.textContent = "삭제";
+            deleteButton.addEventListener("click", () => deleteMessage(message));
+
+            actions.appendChild(editButton);
+            actions.appendChild(deleteButton);
+            head.appendChild(actions);
+          }
+
+          const body = document.createElement("div");
+          body.className = message.deleted ? "message-body deleted" : "message-body";
+          body.textContent = message.message;
+
+          const meta = document.createElement("div");
+          meta.className = "message-meta";
+          meta.innerHTML = `
+            <span>ID: ${message.messageId}</span>
+            <span>읽지 않음: ${message.unreadCount}</span>
+            <span>${message.edited ? "수정됨" : ""}</span>
+            <span>${formatTime(message.createdAt)}</span>
+          `;
+
+          item.appendChild(head);
+          item.appendChild(body);
+          item.appendChild(meta);
+          chatLog.appendChild(item);
+        });
+
+        chatLog.scrollTop = chatLog.scrollHeight;
+      }
+
+      function parseMessagePayload(frameBody) {
+        const payload = JSON.parse(frameBody);
+        return {
+          messageId: payload.messageId,
+          roomId: payload.roomId,
+          senderId: payload.senderId,
+          message: payload.message,
+          edited: payload.edited,
+          deleted: payload.deleted,
+          unreadCount: payload.unreadCount,
+          createdAt: payload.createdAt
+        };
+      }
+
+      async function loadMessages() {
+        if (!state.activeRoomId || !state.currentUser) {
+          return;
+        }
+
+        const payload = await request(`/api/v1/chat/messages/${state.activeRoomId}?memberId=${encodeURIComponent(state.currentUser.memberId)}`);
+        state.messages = Array.isArray(payload.Data) ? payload.Data : [];
+        renderMessages();
+      }
+
+      async function markRoomRead() {
+        if (!state.activeRoomId || !state.currentUser) {
+          return;
+        }
+
+        try {
+          await request(`/api/v1/chat/rooms/read/${state.activeRoomId}`, {
+            method: "POST",
+            body: JSON.stringify({
+              memberId: state.currentUser.memberId
+            })
+          });
+        } catch (error) {
+          setStatus(error.message);
+        }
+      }
+
+      function disconnectSocket() {
+        if (!state.stompClient) {
+          return;
+        }
+        state.stompClient.deactivate();
+        state.stompClient = null;
+      }
+
+      function connectSocket(roomId) {
+        disconnectSocket();
+
+        const client = new StompJs.Client({
+          brokerURL: WS_URL,
+          reconnectDelay: 3000,
+          onConnect: () => {
+            setStatus(`소켓 연결 완료: room ${roomId}`);
+
+            client.subscribe(`/sub/chat/rooms/${roomId}/messages`, async (frame) => {
+              const payload = parseMessagePayload(frame.body);
+              upsertMessage(payload);
+              renderMessages();
+
+              if (payload.senderId !== state.currentUser?.memberId) {
+                await markRoomRead();
+              }
+            });
+
+            client.subscribe(`/sub/chat/rooms/${roomId}/read-status`, async () => {
+              await loadMessages();
+            });
+          },
+          onStompError: (frame) => {
+            setStatus(frame.headers.message || "STOMP 에러");
+          },
+          onWebSocketError: () => {
+            setStatus("웹소켓 연결 실패");
+          }
+        });
+
+        client.activate();
+        state.stompClient = client;
+      }
+
+      async function editMessage(message) {
+        state.editingMessageId = message.messageId;
+        messageInput.value = message.message;
+        messageInput.focus();
+        renderMessages();
+      }
+
+      async function updateMessage(text) {
+        try {
+          const payload = await request(`/api/v1/chat/messages/${state.editingMessageId}`, {
+            method: "PATCH",
+            body: JSON.stringify({
+              memberId: state.currentUser.memberId,
+              message: text
+            })
+          });
+          if (payload?.Data) {
+            upsertMessage(payload.Data);
+          }
+          state.editingMessageId = null;
+          messageInput.value = "";
+          renderMessages();
+        } catch (error) {
+          setStatus(error.message);
+        }
+      }
+
+      async function deleteMessage(message) {
+        try {
+          const payload = await request(`/api/v1/chat/messages/${message.messageId}`, {
+            method: "DELETE",
+            body: JSON.stringify({
+              memberId: state.currentUser.memberId
+            })
+          });
+          if (payload?.Data) {
+            upsertMessage(payload.Data);
+            renderMessages();
+          }
+        } catch (error) {
+          setStatus(error.message);
+        }
+      }
+
+      loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setBusy(true);
+        setStatus("");
+
+        try {
+          const payload = await request("/api/v1/auth/login", {
+            method: "POST",
+            body: JSON.stringify({
+              email: emailInput.value,
+              password: passwordInput.value
+            })
+          });
+
+          state.currentUser = {
+            email: emailInput.value,
+            memberId: parseMemberId(payload.Data),
+            serverMessage: payload.Data
+          };
+          renderSession();
+          setStatus("로그인 성공");
+        } catch (error) {
+          setStatus(error.message);
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      logoutButton.addEventListener("click", () => {
+        disconnectSocket();
+        state.currentUser = null;
+        state.selectedMemberLabel = null;
+        state.activeRoomId = null;
+        state.messages = [];
+        state.editingMessageId = null;
+        renderSession();
+        renderMessages();
+        setStatus("로그아웃");
+      });
+
+      chatRoomForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!state.currentUser) {
+          setStatus("먼저 로그인하세요.");
+          return;
+        }
+
+        setBusy(true);
+        setStatus("");
+
+        try {
+          const payload = await request("/api/v1/chat/rooms/enter", {
+            method: "POST",
+            body: JSON.stringify({
+              memberId: state.currentUser.memberId,
+              targetMemberId: Number(targetMemberIdInput.value),
+              productId: productIdInput.value ? Number(productIdInput.value) : null
+            })
+          });
+
+          const roomId = payload?.Data?.roomId;
+          if (!roomId) {
+            throw new Error("roomId가 없습니다.");
+          }
+
+          state.selectedMemberLabel = `member #${targetMemberIdInput.value}`;
+          state.activeRoomId = roomId;
+          state.messages = [];
+          state.editingMessageId = null;
+          renderMessages();
+          setStatus(`채팅방 ${roomId} 연결`);
+          connectSocket(roomId);
+          await loadMessages();
+          await markRoomRead();
+        } catch (error) {
+          setStatus(error.message);
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      messageForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        const text = messageInput.value.trim();
+        if (!state.stompClient?.connected || !state.activeRoomId || !state.currentUser || !text) {
+          return;
+        }
+
+        if (state.editingMessageId) {
+          updateMessage(text);
+          return;
+        }
+
+        state.stompClient.publish({
+          destination: `/pub/chat/rooms/${state.activeRoomId}/messages`,
+          headers: {
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            memberId: state.currentUser.memberId,
+            message: text
+          })
+        });
+
+        messageInput.value = "";
+      });
+
+      renderSession();
+      renderMessages();
+    </script>
+  </body>
+</html>
