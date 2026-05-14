@@ -40,7 +40,7 @@ class AuthServiceUnitTest {
 
         @Test
         @DisplayName("[HAPPY] 회원가입이 정상적으로 작동한다.")
-        public void signup_validRequest_success(){
+        public void signup_ValidRequest_Success(){
             //given
             AuthSignupRequestDto dto = new AuthSignupRequestDto("test@test.com", "이름", "password", address);
 
