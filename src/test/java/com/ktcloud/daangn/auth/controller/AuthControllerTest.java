@@ -2,7 +2,7 @@ package com.ktcloud.daangn.auth.controller;
 
 import com.ktcloud.daangn.auth.dto.AuthSignupRequestDto;
 import com.ktcloud.daangn.auth.service.AuthService;
-import com.ktcloud.daangn.config.valueObject.Address;
+import com.ktcloud.daangn.common.valueObject.Address;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
