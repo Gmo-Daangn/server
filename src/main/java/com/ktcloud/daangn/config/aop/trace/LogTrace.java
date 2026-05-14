@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class LogTrace {
 
-    private static final Logger log = LoggerFactory.getLogger("com.ktcloud.daangn.trace");
+    private static final Logger log = LoggerFactory.getLogger(LogTrace.class);
 
     private static final String START_PREFIX = "-->";
     private static final String COMPLETE_PREFIX = "<--";
