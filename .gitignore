@@ -81,12 +81,6 @@ cmake-build-*/
 # Mongo Explorer plugin
 .idea/**/mongoSettings.xml
 
-# File-based project format
-*.iws
-
-# IntelliJ
-out/
-
 # mpeltonen/sbt-idea plugin
 .idea_modules/
 
@@ -246,3 +240,6 @@ $RECYCLE.BIN/
 
 ### Docker / local MySQL data (bind mount)
 mysql_data/
+
+### SpringRESTDocs
+src/main/resources/static/docs/
