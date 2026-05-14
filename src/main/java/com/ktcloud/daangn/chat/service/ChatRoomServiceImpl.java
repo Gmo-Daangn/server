@@ -8,7 +8,7 @@ import com.ktcloud.daangn.chat.entity.ChatType;
 import com.ktcloud.daangn.chat.repository.ChatMessageRepository;
 import com.ktcloud.daangn.chat.repository.ChatParticipantRepository;
 import com.ktcloud.daangn.chat.repository.ChatRoomRepository;
-import com.ktcloud.daangn.config.exception.InvalidInputException;
+import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
 import lombok.RequiredArgsConstructor;

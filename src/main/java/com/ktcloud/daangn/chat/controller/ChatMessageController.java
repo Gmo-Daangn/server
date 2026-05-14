@@ -4,7 +4,7 @@ import com.ktcloud.daangn.chat.dto.ChatMessageDeleteRequestDto;
 import com.ktcloud.daangn.chat.dto.ChatMessageResponseDto;
 import com.ktcloud.daangn.chat.dto.ChatMessageWriteRequestDto;
 import com.ktcloud.daangn.chat.service.ChatMessageService;
-import com.ktcloud.daangn.config.dto.BaseResponse;
+import com.ktcloud.daangn.common.dto.BaseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
