@@ -2,7 +2,7 @@ package com.ktcloud.daangn.chat.controller;
 
 import com.ktcloud.daangn.chat.dto.*;
 import com.ktcloud.daangn.chat.service.ChatRoomService;
-import com.ktcloud.daangn.config.dto.BaseResponse;
+import com.ktcloud.daangn.common.dto.BaseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
