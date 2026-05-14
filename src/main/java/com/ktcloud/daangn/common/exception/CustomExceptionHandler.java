@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
-public class CustomerExceptionHandler {
+public class CustomExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     protected ResponseEntity<BaseResponse<Map<String, String>>> methodArgumentNotValidException(MethodArgumentNotValidException ex) {
