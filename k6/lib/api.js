@@ -1,7 +1,7 @@
 import http from 'k6/http';
 import {check, fail} from 'k6';
 
-// 테스트 대상 서버 주소입니다.
+// 테스트 대상 서버 주소
 export const BASE_URL = 'http://localhost:8080';
 export const DEFAULT_PASSWORD = 'password1234';
 
@@ -19,7 +19,7 @@ export function jsonHeaders(extraHeaders = {}) {
 }
 
 export function uniqueEmail(prefix = 'k6-user') {
-    // 회원가입 시 중복 이메일처리 방지를 위해 랜덤으로 새 이메일을 생성.
+    // 회원가입 시 중복 이메일처리 방지를 위해 랜덤으로 새 이메일을 생성
     const vu = typeof __VU === 'undefined' ? 'setup' : __VU;
     const iter = typeof __ITER === 'undefined' ? 0 : __ITER;
     const suffix = Math.random().toString(36).slice(2, 10);
@@ -76,7 +76,6 @@ export function loginUser(email, password = DEFAULT_PASSWORD) {
 }
 
 export function createMember(prefix = 'k6-user') {
-    // 대부분의 시나리오가 인증된 회원과 DB memberId를 함께 필요로 합니다.
     const user = signupUser(uniqueEmail(prefix));
     if (!user.memberId) {
         fail('signup succeeded without a parseable member id');
@@ -89,7 +88,7 @@ export function createMember(prefix = 'k6-user') {
 }
 
 export function authHeaders(token) {
-    // 로그인 응답의 grantType/accessToken 형식에 맞춰 인증 헤더를 만듭니다.
+    // 로그인 응답의 grantType/accessToken 형식에 맞춰 인증 헤더를 생성
     return jsonHeaders({
         Authorization: token.authorization,
     });
@@ -133,7 +132,6 @@ export function enterChatRoom(memberId, targetMemberId, productId) {
 }
 
 function extractMemberId(response) {
-    // 현재 회원가입 응답은 구조화된 ID가 아니라 메시지 문자열로 ID를 돌려줍니다.
     const message = responseValue(response, 'data');
     if (typeof message !== 'string') {
         return 0;
@@ -144,7 +142,7 @@ function extractMemberId(response) {
 }
 
 export function responseValue(response, path) {
-    // 네트워크 실패처럼 body가 비는 경우에도 테스트가 터지지 않고 check 실패로 남게 합니다.
+    // 네트워크 실패처럼 body가 비는 경우에도 테스트가 터지지 않고 check 실패로 처리
     try {
         return response.json(path);
     } catch (_error) {

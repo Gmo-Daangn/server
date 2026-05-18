@@ -90,7 +90,7 @@ export default function () {
 }
 
 function stompFrame(command, headers = {}, body = '') {
-    // Spring STOMP 엔드포인트는 null byte로 끝나는 프레임을 기대합니다.
+    // Spring STOMP 문자열 포맷을 직접 만들어서 테스트 진행
     const headerLines = Object.entries(headers)
         .map(([key, value]) => `${key}:${value}`)
         .join('\n');
