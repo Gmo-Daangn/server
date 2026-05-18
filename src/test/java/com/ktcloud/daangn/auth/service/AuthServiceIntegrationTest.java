@@ -34,7 +34,7 @@ class AuthServiceIntegrationTest {
 
         @Test
         @DisplayName("[HAPPY] 회원가입이 정상적으로 작동한다.")
-        void signup_validRequest_success() {
+        void signup_ValidRequest_Success() {
             AuthSignupRequestDto dto = new AuthSignupRequestDto(
                     "test@test.com", "nickname", "password", address
             );
