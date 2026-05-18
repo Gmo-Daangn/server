@@ -29,3 +29,16 @@ include::{snippets}/auth-login-success/response-fields.adoc[]
 
 === CURL
 include::{snippets}/auth-login-success/curl-request.adoc[]
+
+== 내정보 조회 성공
+
+=== 요청
+include::{snippets}/member-info-success/http-request.adoc[]
+include::{snippets}/member-info-success/request-headers.adoc[]
+
+=== 응답
+include::{snippets}/member-info-success/http-response.adoc[]
+include::{snippets}/member-info-success/response-fields.adoc[]
+
+=== CURL
+include::{snippets}/member-info-success/curl-request.adoc[]
