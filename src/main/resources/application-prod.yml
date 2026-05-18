@@ -42,6 +42,7 @@ logging:
   pattern:
     console: "[%d{HH:mm:ss.SSS}][%-5level][%logger] - %msg%n"
   level:
+    root: info
     org:
       springframework:
         mail: info
