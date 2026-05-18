@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 public record PostDetailResponseDto(
         Long postId,
+        Long memberId,
         String sellerNickname,
         String title,
         String content,
@@ -19,6 +20,7 @@ public record PostDetailResponseDto(
     public static PostDetailResponseDto from(Post post) {
         return new PostDetailResponseDto(
                 post.getId(),
+                post.getMemberId(),
                 post.getMember().getNickName(),
                 post.getTitle(),
                 post.getContent(),

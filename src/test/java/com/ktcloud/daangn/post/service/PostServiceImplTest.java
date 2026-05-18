@@ -122,6 +122,7 @@ class PostServiceImplTest {
             assertThat(result.totalElements()).isEqualTo(1);
             assertThat(result.contents()).hasSize(1);
             assertThat(result.contents().getFirst().postId()).isEqualTo(POST_ID);
+            assertThat(result.contents().getFirst().memberId()).isEqualTo(MEMBER_ID);
             assertThat(result.contents().getFirst().title()).isEqualTo("자전거");
         }
 
@@ -134,6 +135,7 @@ class PostServiceImplTest {
             PostDetailResponseDto result = postService.getPostDetail(POST_ID);
 
             assertThat(result.postId()).isEqualTo(POST_ID);
+            assertThat(result.memberId()).isEqualTo(MEMBER_ID);
             assertThat(result.sellerNickname()).isEqualTo("판매자");
             assertThat(result.viewCount()).isEqualTo(1);
             assertThat(post.getViewCount()).isEqualTo(1);

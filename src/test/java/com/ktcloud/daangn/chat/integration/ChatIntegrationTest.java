@@ -92,9 +92,9 @@ class ChatIntegrationTest {
         // 회원 가입 API를 통하지 않고 채팅에 필요한 회원만 준비
         MvcResult enterResult = enterRoom(members, 100L)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.Data.created").value(true))
+                .andExpect(jsonPath("$.data.created").value(true))
                 .andReturn();
-        Long roomId = readLong(enterResult, "$.Data.roomId");
+        Long roomId = readLong(enterResult, "$.data.roomId");
 
         // HTTP API는 MockMvc로 빠르게 검증하고 메시지 전송 및 브로드캐스트는 실제 STOMP 연결로 확인
         WebSocketStompClient stompClient = new WebSocketStompClient(new StandardWebSocketClient());
@@ -129,13 +129,13 @@ class ChatIntegrationTest {
             mockMvc.perform(get("/api/v1/chat/messages/{roomId}", roomId)
                             .param("memberId", members.senderId().toString()))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.Data[0].messageId").value(sentMessage.messageId()))
-                    .andExpect(jsonPath("$.Data[0].message").value("hello integration"));
+                    .andExpect(jsonPath("$.data[0].messageId").value(sentMessage.messageId()))
+                    .andExpect(jsonPath("$.data[0].message").value("hello integration"));
 
             enterRoom(members, 100L)
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.Data.roomId").value(roomId))
-                    .andExpect(jsonPath("$.Data.created").value(false));
+                    .andExpect(jsonPath("$.data.roomId").value(roomId))
+                    .andExpect(jsonPath("$.data.created").value(false));
 
             mockMvc.perform(post("/api/v1/chat/rooms/read/{roomId}", roomId)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -145,12 +145,12 @@ class ChatIntegrationTest {
                                     }
                                     """.formatted(members.receiverId())))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.Data.readMessageCount").value(1));
+                    .andExpect(jsonPath("$.data.readMessageCount").value(1));
 
             mockMvc.perform(get("/api/v1/chat/messages/{roomId}", roomId)
                             .param("memberId", members.receiverId().toString()))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.Data[0].unreadCount").value(0));
+                    .andExpect(jsonPath("$.data[0].unreadCount").value(0));
 
             mockMvc.perform(patch("/api/v1/chat/messages/{messageId}", sentMessage.messageId())
                             .contentType(MediaType.APPLICATION_JSON)
@@ -161,8 +161,8 @@ class ChatIntegrationTest {
                                     }
                                     """.formatted(members.senderId())))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.Data.message").value("edited integration"))
-                    .andExpect(jsonPath("$.Data.edited").value(true));
+                    .andExpect(jsonPath("$.data.message").value("edited integration"))
+                    .andExpect(jsonPath("$.data.edited").value(true));
 
             ChatMessageResponseDto editedMessage = pollMessage(messageEvents);
             assertThat(editedMessage.messageId()).isEqualTo(sentMessage.messageId());
@@ -177,8 +177,8 @@ class ChatIntegrationTest {
                                     }
                                     """.formatted(members.senderId())))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.Data.deleted").value(true))
-                    .andExpect(jsonPath("$.Data.message").value("삭제된 메시지입니다."));
+                    .andExpect(jsonPath("$.data.deleted").value(true))
+                    .andExpect(jsonPath("$.data.message").value("삭제된 메시지입니다."));
 
             ChatMessageResponseDto deletedMessage = pollMessage(messageEvents);
             assertThat(deletedMessage.messageId()).isEqualTo(sentMessage.messageId());
