@@ -20,7 +20,6 @@
 ## 실행 방법
 
 ```bash
-k6 run k6/scripts/smoke.js
 k6 run k6/scripts/auth-flow.js
 k6 run k6/scripts/rest-read.js
 k6 run k6/scripts/posts.js
