@@ -7,10 +7,6 @@
 - Spring Boot 서버가 `http://localhost:8080`에서 실행 중이어야 합니다.
 - MySQL 컨테이너가 실행 중이어야 합니다.
 
-```bash
-openssl rand -base64 32
-```
-
 ## 테스트 목록
 
 - `scripts/smoke.js`: 회원가입, 로그인, 내 정보 조회, 게시글 생성/조회 기본 흐름 확인
