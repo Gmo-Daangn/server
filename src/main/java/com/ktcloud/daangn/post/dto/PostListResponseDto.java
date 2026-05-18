@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 public record PostListResponseDto(
         Long postId,
+        Long memberId,
         String title,
         Integer price,
         String location,
@@ -15,6 +16,7 @@ public record PostListResponseDto(
     public static PostListResponseDto from(Post post) {
         return new PostListResponseDto(
                 post.getId(),
+                post.getMemberId(),
                 post.getTitle(),
                 post.getPrice(),
                 post.getLocation(),
