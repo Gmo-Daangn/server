@@ -8,13 +8,16 @@ import com.ktcloud.daangn.chat.repository.ChatMessageRepository;
 import com.ktcloud.daangn.chat.repository.ChatParticipantRepository;
 import com.ktcloud.daangn.chat.repository.ChatRoomRepository;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
+import com.ktcloud.daangn.chat.event.ChatMessageSentEvent;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -26,6 +29,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatParticipantRepository chatParticipantRepository;
     private final MemberService memberService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 메시지 전송 처리
     @Override
@@ -37,6 +41,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         long readCount = Math.max(chatParticipantRepository.countByChatRoom_Id(roomId) - 1, 0);
 
         ChatMessage chatMessage = chatMessageRepository.save(ChatMessage.createMessage(chatRoom, member, message, readCount));
+
+        publishMessageSent(roomId, memberId, chatMessage, message);
 
         return ChatMessageResponseDto.from(chatMessage);
     }
@@ -95,5 +101,42 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         if (chatMessage.isDeletedMessage()) {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "삭제된 메시지는 수정 또는 삭제할 수 없습니다.");
         }
+    }
+
+
+    // 채팅 메시지 저장 후 발생하는 이벤트 발행
+    private void publishMessageSent(Long chatRoomId, Long senderId, ChatMessage chatMessage, String message) {
+        List<Long> receiverIds = new ArrayList<>();
+
+        for (ChatParticipant participant : chatParticipantRepository.findByChatRoom_Id(chatRoomId)) {
+            Long id = participant.getMember().getId();
+            if (!id.equals(senderId)) {
+                receiverIds.add(id);
+            }
+        }
+        if (receiverIds.isEmpty()) {
+            return;
+        }
+        
+        Long messageId = chatMessage.getId();
+        String messagePreview = truncatePreview(message, 120);
+
+        eventPublisher.publishEvent(new ChatMessageSentEvent(
+                chatRoomId,
+                senderId,
+                messageId,
+                messagePreview,
+                List.copyOf(receiverIds)));
+    }
+
+    // 메시지 미리보기
+    private static String truncatePreview(String message, int maxLen) {
+        if (message == null) {
+            return "";
+        }
+        if (message.length() <= maxLen) {
+            return message;
+        }
+        return message.substring(0, maxLen) + "…";
     }
 }
