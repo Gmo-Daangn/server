@@ -117,7 +117,7 @@ class NotificationServiceIntegrationTest {
             Member member = createMember("noti-read@test.com");
             createTemplate("Test_CHAT", "메시지 {templateText}");
             notificationService.createAndSendNotification(
-                    new NotificationEvent(member.getId(), "CHAT", 10L, "도착")
+                    new NotificationEvent(member.getId(), "Test_CHAT", 10L, "도착")
             );
 
             Long notificationId = notificationService.getNotifications(member.getId()).getFirst().id();
