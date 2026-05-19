@@ -42,3 +42,55 @@ include::{snippets}/member-info-success/response-fields.adoc[]
 
 === CURL
 include::{snippets}/member-info-success/curl-request.adoc[]
+
+
+== 알림 SSE 구독
+
+=== 요청
+include::{snippets}/notification-subscribe-success/http-request.adoc[]
+include::{snippets}/notification-subscribe-success/query-parameters.adoc[]
+
+=== 응답
+include::{snippets}/notification-subscribe-success/http-response.adoc[]
+
+=== CURL
+include::{snippets}/notification-subscribe-success/curl-request.adoc[]
+
+== 알림 목록 조회
+
+=== 요청
+include::{snippets}/notification-list-success/http-request.adoc[]
+include::{snippets}/notification-list-success/query-parameters.adoc[]
+
+=== 응답
+include::{snippets}/notification-list-success/http-response.adoc[]
+include::{snippets}/notification-list-success/response-fields.adoc[]
+
+=== CURL
+include::{snippets}/notification-list-success/curl-request.adoc[]
+
+== 알림 읽음 처리
+
+=== 요청
+include::{snippets}/notification-read-success/http-request.adoc[]
+include::{snippets}/notification-read-success/path-parameters.adoc[]
+
+=== 응답
+include::{snippets}/notification-read-success/http-response.adoc[]
+include::{snippets}/notification-read-success/response-fields.adoc[]
+
+=== CURL
+include::{snippets}/notification-read-success/curl-request.adoc[]
+
+== 알림 삭제
+
+=== 요청
+include::{snippets}/notification-delete-success/http-request.adoc[]
+include::{snippets}/notification-delete-success/path-parameters.adoc[]
+
+=== 응답
+include::{snippets}/notification-delete-success/http-response.adoc[]
+include::{snippets}/notification-delete-success/response-fields.adoc[]
+
+=== CURL
+include::{snippets}/notification-delete-success/curl-request.adoc[]
