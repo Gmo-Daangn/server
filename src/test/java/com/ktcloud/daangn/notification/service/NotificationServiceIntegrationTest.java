@@ -115,9 +115,9 @@ class NotificationServiceIntegrationTest {
         @DisplayName("[HAPPY] 읽음 처리 후 조회하면 isRead가 true다")
         void read_success() {
             Member member = createMember("noti-read@test.com");
-            createTemplate("CHAT", "메시지 {templateText}");
+            createTemplate("Test_CHAT", "메시지 {templateText}");
             notificationService.createAndSendNotification(
-                    new NotificationEvent(member.getId(), "CHAT", 10L, "도착")
+                    new NotificationEvent(member.getId(), "Test_CHAT", 10L, "도착")
             );
 
             Long notificationId = notificationService.getNotifications(member.getId()).getFirst().id();
