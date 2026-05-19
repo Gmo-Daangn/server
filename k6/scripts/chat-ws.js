@@ -35,11 +35,12 @@ export default function () {
     const expectedMessage = `k6 websocket message ${__VU}-${__ITER}-${Date.now()}`;
 
     const url = BASE_URL.replace(/^http/, 'ws') + '/api/ws-stomp';
+    const stompHost = stompHostFromBaseUrl(BASE_URL);
     const response = ws.connect(url, {}, (socket) => {
         socket.on('open', () => {
             socket.send(stompFrame('CONNECT', {
                 'accept-version': '1.2',
-                host: 'localhost',
+                host: stompHost,
             }));
         });
 
@@ -94,6 +95,12 @@ function stompFrame(command, headers = {}, body = '') {
     const headerLines = Object.entries(headers)
         .map(([key, value]) => `${key}:${value}`)
         .join('\n');
+    const headerBlock = headerLines ? `${headerLines}\n` : '';
 
-    return `${command}\n${headerLines}\n\n${body}\x00`;
+    return `${command}\n${headerBlock}\n${body}\x00`;
+}
+
+function stompHostFromBaseUrl(baseUrl) {
+    // BASE_URL이 로컬이 아닌 환경을 가리켜도 STOMP host 헤더가 접속 대상과 맞도록 호스트를 추출
+    return baseUrl.replace(/^https?:\/\//, '').split('/')[0];
 }

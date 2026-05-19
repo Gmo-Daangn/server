@@ -40,10 +40,10 @@ export function signupUser(email = uniqueEmail(), password = DEFAULT_PASSWORD) {
         },
     }), jsonHeaders());
 
-    check(response, {
+    requireChecks(response, {
         'signup status is 200': (r) => r.status === 200,
         'signup returns member id': (r) => extractMemberId(r) > 0,
-    });
+    }, 'signup');
 
     return {
         email,
@@ -59,10 +59,10 @@ export function loginUser(email, password = DEFAULT_PASSWORD) {
         password,
     }), jsonHeaders());
 
-    check(response, {
+    requireChecks(response, {
         'login status is 200': (r) => r.status === 200,
         'login returns access token': (r) => !!responseValue(r, 'data.accessToken'),
-    });
+    }, 'login');
 
     const grantType = responseValue(response, 'data.grantType') || 'Bearer';
     const accessToken = responseValue(response, 'data.accessToken');
@@ -102,10 +102,10 @@ export function createPost(memberId, overrides = {}) {
         memberId,
     }), jsonHeaders());
 
-    check(response, {
+    requireChecks(response, {
         'create post status is 200': (r) => r.status === 200,
         'create post returns post id': (r) => Number(responseValue(r, 'data.postId')) > 0,
-    });
+    }, 'create post');
 
     return {
         postId: Number(responseValue(response, 'data.postId')),
@@ -120,10 +120,10 @@ export function enterChatRoom(memberId, targetMemberId, productId) {
         productId,
     }), jsonHeaders());
 
-    check(response, {
+    requireChecks(response, {
         'chat room enter status is 200': (r) => r.status === 200,
         'chat room id exists': (r) => Number(responseValue(r, 'data.roomId')) > 0,
-    });
+    }, 'chat room enter');
 
     return {
         roomId: Number(responseValue(response, 'data.roomId')),
@@ -147,5 +147,12 @@ export function responseValue(response, path) {
         return response.json(path);
     } catch (_error) {
         return undefined;
+    }
+}
+
+function requireChecks(response, checks, label) {
+    const passed = check(response, checks);
+    if (!passed) {
+        fail(`${label} failed: status=${response.status}`);
     }
 }

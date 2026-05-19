@@ -4,6 +4,7 @@ import {BASE_URL, createMember, createPost, enterChatRoom, jsonHeaders} from '..
 
 const TARGET_VUS = 100;
 const TEST_DURATION = '1m';
+const CHAT_ROOM_POOL_SIZE = TARGET_VUS;
 
 export const options = {
     scenarios: {
@@ -14,34 +15,63 @@ export const options = {
         },
     },
     thresholds: {
-        http_req_failed: ['rate<0.02'],
-        http_req_duration: ['p(95)<1000'],
         checks: ['rate>0.99'],
+        http_req_failed: ['rate<0.02'],
+        'http_req_duration{endpoint:chat_room_list}': ['p(95)<1000'],
+        'http_req_duration{endpoint:chat_message_list}': ['p(95)<1000'],
+        'http_req_duration{endpoint:chat_room_read}': ['p(95)<1000'],
     },
 };
 
-export default function () {
-    const seller = createMember('k6-seller');
-    const buyer = createMember('k6-buyer');
-    const post = createPost(seller.memberId, {
-        title: `k6 chat product ${__VU}-${__ITER}`,
+export function setup() {
+    const rooms = [];
+
+    for (let index = 0; index < CHAT_ROOM_POOL_SIZE; index += 1) {
+        const seller = createMember('k6-chat-seller');
+        const buyer = createMember('k6-chat-buyer');
+        const post = createPost(seller.memberId, {
+            title: `k6 chat product ${index}`,
+        });
+        const room = enterChatRoom(buyer.memberId, seller.memberId, post.postId);
+
+        rooms.push({
+            buyerId: buyer.memberId,
+            roomId: room.roomId,
+        });
+    }
+
+    return {rooms};
+}
+
+export default function (data) {
+    const room = data.rooms[(__VU - 1) % data.rooms.length];
+
+    const rooms = http.get(`${BASE_URL}/api/v1/chat/rooms?memberId=${room.buyerId}`, {
+        tags: {
+            endpoint: 'chat_room_list',
+        },
     });
-
-    const room = enterChatRoom(buyer.memberId, seller.memberId, post.postId);
-
-    const rooms = http.get(`${BASE_URL}/api/v1/chat/rooms?memberId=${buyer.memberId}`);
     check(rooms, {
         'chat room list status is 200': (r) => r.status === 200,
     });
 
-    const messages = http.get(`${BASE_URL}/api/v1/chat/messages/${room.roomId}?memberId=${buyer.memberId}`);
+    const messages = http.get(`${BASE_URL}/api/v1/chat/messages/${room.roomId}?memberId=${room.buyerId}`, {
+        tags: {
+            endpoint: 'chat_message_list',
+        },
+    });
     check(messages, {
         'chat messages status is 200': (r) => r.status === 200,
     });
 
     const read = http.post(`${BASE_URL}/api/v1/chat/rooms/read/${room.roomId}`, JSON.stringify({
-        memberId: buyer.memberId,
-    }), jsonHeaders());
+        memberId: room.buyerId,
+    }), {
+        ...jsonHeaders(),
+        tags: {
+            endpoint: 'chat_room_read',
+        },
+    });
 
     check(read, {
         'chat room read status is 200': (r) => r.status === 200,
