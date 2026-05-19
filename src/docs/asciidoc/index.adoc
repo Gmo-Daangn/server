@@ -94,3 +94,98 @@ include::{snippets}/notification-delete-success/response-fields.adoc[]
 
 === CURL
 include::{snippets}/notification-delete-success/curl-request.adoc[]
+
+== 채팅방 생성 성공
+
+=== 요청
+include::{snippets}/chat-room-enter-success/http-request.adoc[]
+include::{snippets}/chat-room-enter-success/request-fields.adoc[]
+
+=== 응답
+include::{snippets}/chat-room-enter-success/http-response.adoc[]
+include::{snippets}/chat-room-enter-success/response-fields.adoc[]
+
+=== CURL
+include::{snippets}/chat-room-enter-success/curl-request.adoc[]
+
+== 채팅방 재입장 성공
+
+=== 요청
+include::{snippets}/chat-room-reenter-success/http-request.adoc[]
+include::{snippets}/chat-room-reenter-success/request-fields.adoc[]
+
+=== 응답
+include::{snippets}/chat-room-reenter-success/http-response.adoc[]
+include::{snippets}/chat-room-reenter-success/response-fields.adoc[]
+
+=== CURL
+include::{snippets}/chat-room-reenter-success/curl-request.adoc[]
+
+== 채팅방 목록 조회 성공
+
+=== 요청
+include::{snippets}/chat-room-list-success/http-request.adoc[]
+include::{snippets}/chat-room-list-success/query-parameters.adoc[]
+
+=== 응답
+include::{snippets}/chat-room-list-success/http-response.adoc[]
+include::{snippets}/chat-room-list-success/response-fields.adoc[]
+
+=== CURL
+include::{snippets}/chat-room-list-success/curl-request.adoc[]
+
+== 채팅 메시지 목록 조회 성공
+
+=== 요청
+include::{snippets}/chat-message-list-success/http-request.adoc[]
+include::{snippets}/chat-message-list-success/path-parameters.adoc[]
+include::{snippets}/chat-message-list-success/query-parameters.adoc[]
+
+=== 응답
+include::{snippets}/chat-message-list-success/http-response.adoc[]
+include::{snippets}/chat-message-list-success/response-fields.adoc[]
+
+=== CURL
+include::{snippets}/chat-message-list-success/curl-request.adoc[]
+
+== 채팅방 읽음 처리 성공
+
+=== 요청
+include::{snippets}/chat-room-read-success/http-request.adoc[]
+include::{snippets}/chat-room-read-success/path-parameters.adoc[]
+include::{snippets}/chat-room-read-success/request-fields.adoc[]
+
+=== 응답
+include::{snippets}/chat-room-read-success/http-response.adoc[]
+include::{snippets}/chat-room-read-success/response-fields.adoc[]
+
+=== CURL
+include::{snippets}/chat-room-read-success/curl-request.adoc[]
+
+== 채팅 메시지 수정 성공
+
+=== 요청
+include::{snippets}/chat-message-edit-success/http-request.adoc[]
+include::{snippets}/chat-message-edit-success/path-parameters.adoc[]
+include::{snippets}/chat-message-edit-success/request-fields.adoc[]
+
+=== 응답
+include::{snippets}/chat-message-edit-success/http-response.adoc[]
+include::{snippets}/chat-message-edit-success/response-fields.adoc[]
+
+=== CURL
+include::{snippets}/chat-message-edit-success/curl-request.adoc[]
+
+== 채팅 메시지 삭제 성공
+
+=== 요청
+include::{snippets}/chat-message-delete-success/http-request.adoc[]
+include::{snippets}/chat-message-delete-success/path-parameters.adoc[]
+include::{snippets}/chat-message-delete-success/request-fields.adoc[]
+
+=== 응답
+include::{snippets}/chat-message-delete-success/http-response.adoc[]
+include::{snippets}/chat-message-delete-success/response-fields.adoc[]
+
+=== CURL
+include::{snippets}/chat-message-delete-success/curl-request.adoc[]
