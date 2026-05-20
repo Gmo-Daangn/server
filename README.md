@@ -76,8 +76,8 @@ SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun
 
 ## 문서
 
-| 문서                               | 설명                             |
-|----------------------------------|--------------------------------|
-| [ERD](docs/01-ERD.png)           | 도메인별 테이블 정의                    |
-| [팀 규칙](docs/02-team-rules.md)    | 커밋 컨벤션, 브랜치 전략, 코드 스타일, 패키지 구조 |
-| [API 명세서](docs/03-api-docs.html) | 전 도메인 REST API 및 WebSocket 명세  |
+| 문서                             | 설명                             |
+|--------------------------------|--------------------------------|
+| [ERD](docs/01-ERD.png)         | 도메인별 테이블 정의                    |
+| [팀 규칙](docs/02-team-rules.md)  | 커밋 컨벤션, 브랜치 전략, 코드 스타일, 패키지 구조 |
+| [API 명세서](docs/03-api-docs.md) | 전 도메인 REST API 및 WebSocket 명세  |
