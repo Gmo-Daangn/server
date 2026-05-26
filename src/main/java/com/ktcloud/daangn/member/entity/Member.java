@@ -37,4 +37,9 @@ public class Member {
     @Enumerated(EnumType.STRING)
     private ProviderToken providerToken;
     private Long balance;
+
+    public void changeBalance(boolean add, Long cash){
+        if (add) this.balance += cash;
+        else this.balance -= cash;
+    }
 }
