@@ -1,5 +1,6 @@
 package com.ktcloud.daangn.payment.service;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
@@ -11,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -50,7 +53,8 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public String createTrade() {
-        return "";
+    public String createTrade(Long postId, Long among) {
+        UUID uuid = UuidCreator.getTimeOrderedEpoch();
+        return uuid+"#"+among+"#"+postId;
     }
 }

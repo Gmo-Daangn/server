@@ -11,5 +11,5 @@ public interface PaymentService {
 
     PaymentResponseDto trade();
 
-    String createTrade();
+    String createTrade(Long postId, Long among);
 }
