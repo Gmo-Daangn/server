@@ -4,9 +4,9 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
+import com.ktcloud.daangn.payment.dto.PaymentCreatTradeRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
-import com.ktcloud.daangn.payment.dto.PaymentTradeRequestDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
 import com.ktcloud.daangn.payment.repository.PaymentRepository;
 import com.ktcloud.daangn.post.entity.Post;
@@ -53,28 +53,28 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public PaymentResponseDto trade(Long fromMemberId, PaymentTradeRequestDto dto) {
-        if (paymentRepository.existsByTranSeqNo(dto.tranSeqNo())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
-        Post post = postService.getPostOrThrow(dto.postId());
+    public PaymentResponseDto trade(Long fromMemberId, String tranSeqNo, Long amount, Long postId) {
+        if (paymentRepository.existsByTranSeqNo(tranSeqNo)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
+        Post post = postService.getPostOrThrow(postId);
         Member targetMember = memberService.getByIdOrThrow(post.getMember().getId());
         Member fromMember = memberService.getByIdOrThrow(fromMemberId);
-        fromMember.changeBalance(false, dto.among());
-        targetMember.changeBalance(true, dto.among());
+        fromMember.changeBalance(false, amount);
+        targetMember.changeBalance(true, amount);
         PaymentHistory fromMemberHistory = PaymentHistory.builder()
                 .type("출금")
                 .localDateTime(LocalDateTime.now())
                 .member(fromMember)
                 .balance(fromMember.getBalance())
-                .changedCash(dto.among())
-                .tranSeqNo(dto.tranSeqNo())
+                .changedCash(amount)
+                .tranSeqNo(tranSeqNo)
                 .build();
         PaymentHistory targetMemberHistory = PaymentHistory.builder()
                 .type("출금")
                 .localDateTime(LocalDateTime.now())
                 .member(targetMember)
                 .balance(targetMember.getBalance())
-                .changedCash(dto.among())
-                .tranSeqNo(dto.tranSeqNo())
+                .changedCash(amount)
+                .tranSeqNo(tranSeqNo)
                 .build();
 
         paymentRepository.save(fromMemberHistory);
@@ -84,9 +84,9 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public String createTrade(Long postId, Long among) {
-        UUID uuid = UuidCreator.getTimeOrderedEpoch();
+    public String createTrade(PaymentCreatTradeRequestDto dto) {
+        UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
         //todo 추후 among과 postId는 외부로 노출 하지않는 방향으로 변경 예정
-        return uuid+"#"+among+"#"+postId;
+        return tranSeqNo+"_"+dto.amount()+"_"+dto.postId();
     }
 }
