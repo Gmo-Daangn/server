@@ -42,7 +42,7 @@ public class Member {
 
     public void changeBalance(boolean add, Long cash){
         if (cash == null || cash < 0L) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "입력값이 잘못되었습니다.");
-        else if (this.balance - cash < 0L) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잔액이 부족합니다.");
+        else if (!add && this.balance - cash < 0L) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잔액이 부족합니다.");
 
         if (add) this.balance += cash;
         else this.balance -= cash;
