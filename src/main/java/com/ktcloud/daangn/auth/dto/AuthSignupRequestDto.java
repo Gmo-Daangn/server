@@ -34,6 +34,7 @@ public record AuthSignupRequestDto(
                 .createAt(LocalDateTime.now())
                 .providerToken(ProviderToken.LOCAL)
                 .memberRole(MemberRole.MEMBER)
+                .balance(0L)
                 .build();
 
     }
