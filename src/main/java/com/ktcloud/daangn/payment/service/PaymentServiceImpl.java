@@ -7,6 +7,7 @@ import com.ktcloud.daangn.member.service.MemberService;
 import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
+import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
 import com.ktcloud.daangn.payment.repository.PaymentRepository;
 import com.ktcloud.daangn.post.entity.Post;
@@ -53,28 +54,28 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public PaymentResponseDto confirmPayment(Long fromMemberId, String tranSeqNo, Long amount, Long postId) {
-        if (paymentRepository.existsByTranSeqNo(tranSeqNo)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
-        Post post = postService.getPostOrThrow(postId);
+    public PaymentResponseDto confirmPayment(Long fromMemberId, PaymentTokenDto dto) {
+        if (paymentRepository.existsByTranSeqNo(dto.tranSeqNo())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
+        Post post = postService.getPostOrThrow(dto.postId());
         Member targetMember = memberService.getByIdOrThrow(post.getMember().getId());
         Member fromMember = memberService.getByIdOrThrow(fromMemberId);
-        fromMember.changeBalance(false, amount);
-        targetMember.changeBalance(true, amount);
+        fromMember.changeBalance(false, dto.amount());
+        targetMember.changeBalance(true, dto.amount());
         PaymentHistory fromMemberHistory = PaymentHistory.builder()
                 .type("출금")
                 .localDateTime(LocalDateTime.now())
                 .member(fromMember)
                 .balance(fromMember.getBalance())
-                .changedCash(amount)
-                .tranSeqNo(tranSeqNo)
+                .changedCash(dto.amount())
+                .tranSeqNo(dto.tranSeqNo())
                 .build();
         PaymentHistory targetMemberHistory = PaymentHistory.builder()
                 .type("입금")
                 .localDateTime(LocalDateTime.now())
                 .member(targetMember)
                 .balance(targetMember.getBalance())
-                .changedCash(amount)
-                .tranSeqNo(tranSeqNo)
+                .changedCash(dto.amount())
+                .tranSeqNo(dto.tranSeqNo())
                 .build();
 
         paymentRepository.save(fromMemberHistory);
