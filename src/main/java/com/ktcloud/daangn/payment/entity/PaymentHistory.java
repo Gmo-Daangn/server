@@ -23,7 +23,6 @@ public class PaymentHistory {
     @ManyToOne(fetch = FetchType.LAZY)
     private Member member;
 
-    @UniqueElements
     private String tranSeqNo;
 
     private String type;
