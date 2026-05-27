@@ -59,10 +59,15 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentResponseDto confirmPayment(Long fromMemberId, PaymentTokenDto dto) {
         if (paymentRepository.existsByTranSeqNo(dto.tranSeqNo())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
         Post post = postService.getPostOrThrow(dto.postId());
+
+        if (fromMemberId.equals(post.getMemberId())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다.");
+
         Member targetMember = memberService.getByIdOrThrow(post.getMember().getId());
         Member fromMember = memberService.getByIdOrThrow(fromMemberId);
+
         fromMember.changeBalance(false, dto.amount());
         targetMember.changeBalance(true, dto.amount());
+
         PaymentHistory fromMemberHistory = PaymentHistory.builder()
                 .type("출금")
                 .localDateTime(LocalDateTime.now())
@@ -71,6 +76,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .changedCash(dto.amount())
                 .tranSeqNo(dto.tranSeqNo())
                 .build();
+
         PaymentHistory targetMemberHistory = PaymentHistory.builder()
                 .type("입금")
                 .localDateTime(LocalDateTime.now())
