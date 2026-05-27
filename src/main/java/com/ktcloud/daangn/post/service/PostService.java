@@ -5,6 +5,7 @@ import com.ktcloud.daangn.post.dto.PostDetailResponseDto;
 import com.ktcloud.daangn.post.dto.PostPageResponseDto;
 import com.ktcloud.daangn.post.dto.PostRequestDto;
 import com.ktcloud.daangn.post.dto.PostUpdateRequestDto;
+import com.ktcloud.daangn.post.entity.Post;
 import org.springframework.data.domain.Pageable;
 
 public interface PostService {
@@ -18,4 +19,6 @@ public interface PostService {
     PostDetailResponseDto updatePost(Long postId, PostUpdateRequestDto request);
 
     String deletePost(Long postId, Long memberId);
+
+    Post getPostOrThrow(Long postId);
 }

@@ -2,6 +2,7 @@ package com.ktcloud.daangn.payment.service;
 
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
+import com.ktcloud.daangn.payment.dto.PaymentTradeRequestDto;
 
 public interface PaymentService {
 
@@ -9,7 +10,7 @@ public interface PaymentService {
 
     PaymentResponseDto withdrawal(PaymentRequestDto dto);
 
-    PaymentResponseDto trade();
+    PaymentResponseDto trade(Long fromMemberId,PaymentTradeRequestDto dto);
 
     String createTrade(Long postId, Long among);
 }
