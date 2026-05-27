@@ -1,6 +1,6 @@
 package com.ktcloud.daangn.payment.dto;
 
-public record PaymentCreatTradeRequestDto(
+public record PaymentInitRequestDto(
         Long postId,
         Long amount
 ) {

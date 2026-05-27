@@ -4,7 +4,7 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
-import com.ktcloud.daangn.payment.dto.PaymentCreatTradeRequestDto;
+import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
@@ -41,7 +41,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public PaymentResponseDto withdrawal(PaymentRequestDto dto) {
+    public PaymentResponseDto withdraw(PaymentRequestDto dto) {
         if (paymentRepository.existsByTranSeqNo(dto.tran_seq_no())) {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 내역입니다.");
         }
@@ -53,7 +53,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public PaymentResponseDto trade(Long fromMemberId, String tranSeqNo, Long amount, Long postId) {
+    public PaymentResponseDto confirmPayment(Long fromMemberId, String tranSeqNo, Long amount, Long postId) {
         if (paymentRepository.existsByTranSeqNo(tranSeqNo)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
         Post post = postService.getPostOrThrow(postId);
         Member targetMember = memberService.getByIdOrThrow(post.getMember().getId());
@@ -69,7 +69,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .tranSeqNo(tranSeqNo)
                 .build();
         PaymentHistory targetMemberHistory = PaymentHistory.builder()
-                .type("출금")
+                .type("입금")
                 .localDateTime(LocalDateTime.now())
                 .member(targetMember)
                 .balance(targetMember.getBalance())
@@ -84,9 +84,9 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public String createTrade(PaymentCreatTradeRequestDto dto) {
+    public String requestPayment(PaymentInitRequestDto dto) {
         UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
-        //todo 추후 among과 postId는 외부로 노출 하지않는 방향으로 변경 예정
+        //todo 추후 amount과 postId는 외부로 노출 하지않는 방향으로 변경 예정
         return tranSeqNo+"_"+dto.amount()+"_"+dto.postId();
     }
 }
