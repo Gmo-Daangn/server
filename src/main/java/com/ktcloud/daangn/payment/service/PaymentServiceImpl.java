@@ -31,6 +31,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponseDto deposit(PaymentRequestDto dto) {
+        //TODO 추후 Lock 관련 이슈 해결하기
         if (paymentRepository.existsByTranSeqNo(dto.tran_seq_no())) {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 내역입니다.");
         }
@@ -43,6 +44,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponseDto withdraw(PaymentRequestDto dto) {
+        //TODO 추후 Lock 관련 이슈 해결하기
         if (paymentRepository.existsByTranSeqNo(dto.tran_seq_no())) {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 내역입니다.");
         }
