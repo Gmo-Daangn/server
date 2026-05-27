@@ -20,22 +20,31 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping("/deposit")
-    public BaseResponse<PaymentResponseDto> deposit(@Valid @RequestBody PaymentRequestDto dto){
+    public BaseResponse<PaymentResponseDto> deposit(@Valid @RequestBody PaymentRequestDto dto) {
         return BaseResponse.success(paymentService.deposit(dto));
     }
 
-    @PostMapping("/withdrawal")
-    public BaseResponse<PaymentResponseDto> withdrawal(@Valid @RequestBody PaymentRequestDto dto) {
+    @PostMapping("/withdraw")
+    public BaseResponse<PaymentResponseDto> withdraw(@Valid @RequestBody PaymentRequestDto dto) {
         return BaseResponse.success(paymentService.withdraw(dto));
     }
 
     @PostMapping("/links")
-    public BaseResponse<String> createLink(@Valid @RequestBody PaymentInitRequestDto dto){
+    public BaseResponse<String> create(@Valid @RequestBody PaymentInitRequestDto dto) {
         return BaseResponse.success(paymentService.requestPayment(dto));
     }
 
+    @GetMapping("/links/{tx}")
+    public BaseResponse<PaymentTradeResponse> detail(@PathVariable String tx) {
+        String[] parts = tx.split("_");
+        String tranSeqNo = parts[0];
+        Long amount = Long.parseLong(parts[1]);
+        Long postId = Long.parseLong(parts[2]);
+        return BaseResponse.success(new PaymentTradeResponse(postId, tranSeqNo, amount));
+    }
+
     @PostMapping("/links/{tx}")
-    public BaseResponse<PaymentResponseDto> trade(@AuthenticationPrincipal CustomUser user, @PathVariable String tx) {
+    public BaseResponse<PaymentResponseDto> confirmPayment(@AuthenticationPrincipal CustomUser user, @PathVariable String tx) {
         Long fromMemberId = user.getMemberId();
         String[] parts = tx.split("_");
         String tranSeqNo = parts[0];
@@ -44,12 +53,4 @@ public class PaymentController {
         return BaseResponse.success(paymentService.confirmPayment(fromMemberId, tranSeqNo, amount, postId));
     }
 
-    @GetMapping("/links/{tx}")
-    public BaseResponse<PaymentTradeResponse> previewTrade(@PathVariable String tx) {
-        String[] parts = tx.split("_");
-        String tranSeqNo = parts[0];
-        Long amount = Long.parseLong(parts[1]);
-        Long postId = Long.parseLong(parts[2]);
-        return BaseResponse.success(new PaymentTradeResponse(postId, tranSeqNo, amount));
-    }
 }
