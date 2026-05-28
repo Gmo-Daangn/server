@@ -81,7 +81,7 @@ public class PostServiceImpl implements PostService {
         return "게시글 삭제 성공";
     }
 
-    private Post getPostOrThrow(Long postId) {
+    public Post getPostOrThrow(Long postId) {
         return postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
     }
