@@ -13,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
@@ -29,7 +28,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -37,9 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Import(TestContainerConfig.class)
 @ExtendWith(RestDocumentationExtension.class)
-public class AuthLoginDocTest {
+public class AuthLoginDocTest extends TestContainerConfig {
     /**
      * 로그인 로직의 경우 스프링 시큐리티관리로 필터에서 로그인이 진행되므로
      * SpringBootTest로 작성
@@ -67,12 +64,12 @@ public class AuthLoginDocTest {
     @DisplayName("로그인")
     class Login {
 
-        private  final Address address = new Address("서울시","동작구","사당동");
+        private final Address address = new Address("서울시", "동작구", "사당동");
 
         @Test
         @Transactional
         @DisplayName("[HAPPY] 로그인시 정상적으로 작동한다.")
-        public void login_ValidRequest_Success() throws Exception{
+        public void login_ValidRequest_Success() throws Exception {
             //given
             AuthSignupRequestDto dto = new AuthSignupRequestDto("test@test.com", "이름", "password", address);
             em.persist(dto.toMember(passwordEncoder.encode(dto.password())));
@@ -87,7 +84,7 @@ public class AuthLoginDocTest {
                     .andDo(document("auth-login-success", requestFields(
                             fieldWithPath("email").description("이메일"),
                             fieldWithPath("password").description("비밀번호")
-                    ),responseFields(
+                    ), responseFields(
                             fieldWithPath("code").description("HTTP Status Code"),
                             fieldWithPath("localDateTime").description("시간"),
                             fieldWithPath("message").description("설명 메시지"),
