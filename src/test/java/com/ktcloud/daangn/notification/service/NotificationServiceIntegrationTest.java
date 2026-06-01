@@ -1,8 +1,8 @@
 package com.ktcloud.daangn.notification.service;
 
-import com.ktcloud.daangn.config.TestContainerConfig;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.common.valueObject.Address;
+import com.ktcloud.daangn.config.TestContainerConfig;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.entity.MemberRole;
 import com.ktcloud.daangn.member.entity.ProviderToken;
@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,10 +25,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
-@Import(TestContainerConfig.class)
 @ActiveProfiles("test")
 @Transactional
-class NotificationServiceIntegrationTest {
+class NotificationServiceIntegrationTest extends TestContainerConfig {
 
     @Autowired
     private NotificationService notificationService;
