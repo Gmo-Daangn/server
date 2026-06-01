@@ -1,53 +1,66 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '4.0.5'
-	id 'io.spring.dependency-management' version '1.1.7'
-	id 'org.asciidoctor.jvm.convert' version '4.0.5'
+    id 'java'
+    id 'org.springframework.boot' version '4.0.5'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.asciidoctor.jvm.convert' version '4.0.5'
+    id 'jacoco'
 }
 
 group = 'com.ktcloud'
 version = '0.0.1-SNAPSHOT'
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(25)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 configurations {
-	mockitoAgent
-	asciidoctorExtensions
+    mockitoAgent
+    asciidoctorExtensions
 }
 
 asciidoctorj {
-	version = "3.0.0"
+    version = "3.0.0"
 }
 
 ext {
-	snippetsDir = file('build/generated-snippets')
+    snippetsDir = file('build/generated-snippets')
+}
+
+def jacocoIncludedPackages = [
+        '**/service/**',
+        '**/entity/**',
+        '**/repository/**'
+]
+
+def jacocoTargetClassDirectories = {
+    files(sourceSets.main.output.classesDirs.collect {
+        fileTree(dir: it, includes: jacocoIncludedPackages)
+    })
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	implementation 'org.springframework.boot:spring-boot-starter-aspectj'
-	implementation 'org.springframework.security:spring-security-core'
-	compileOnly 'org.projectlombok:lombok'
-	runtimeOnly 'com.mysql:mysql-connector-j'
-	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
-	testCompileOnly 'org.projectlombok:lombok'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	testAnnotationProcessor 'org.projectlombok:lombok'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-aspectj'
+    implementation 'org.springframework.security:spring-security-core'
+    compileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testCompileOnly 'org.projectlombok:lombok'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testAnnotationProcessor 'org.projectlombok:lombok'
 
     // JWT 라이브러리
     implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
@@ -60,41 +73,70 @@ dependencies {
     // AWS S3
     // implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 
-	//test 환경 dependency
-	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-	testImplementation platform('org.testcontainers:testcontainers-bom:2.0.4')
-	testImplementation 'org.testcontainers:testcontainers-mysql'
-	testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    //test 환경 dependency
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation platform('org.testcontainers:testcontainers-bom:2.0.4')
+    testImplementation 'org.testcontainers:testcontainers-mysql'
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
 
-	mockitoAgent('org.mockito:mockito-core') {
-		transitive = false
-	}
+    mockitoAgent('org.mockito:mockito-core') {
+        transitive = false
+    }
 
-	//Spring REST Docs
-	asciidoctorExtensions 'org.springframework.restdocs:spring-restdocs-asciidoctor:4.0.0'
-	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc:4.0.0'
+    //Spring REST Docs
+    asciidoctorExtensions 'org.springframework.restdocs:spring-restdocs-asciidoctor:4.0.0'
+    testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc:4.0.0'
 
-	//UUID Creator
-	implementation 'com.github.f4b6a3:uuid-creator:6.1.1'
+    //UUID Creator
+    implementation 'com.github.f4b6a3:uuid-creator:6.1.1'
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
-	jvmArgs += "-javaagent:${configurations.mockitoAgent.asPath}"
-	outputs.dir snippetsDir
+    useJUnitPlatform()
+    jvmArgs += "-javaagent:${configurations.mockitoAgent.asPath}"
+    outputs.dir snippetsDir
+    finalizedBy tasks.jacocoTestReport // report is always generated after tests run
 }
 
 tasks.named("asciidoctor") {
-	configurations = ["asciidoctorExtensions"]
-	inputs.dir snippetsDir
-	dependsOn test
+    configurations = ["asciidoctorExtensions"]
+    inputs.dir snippetsDir
+    dependsOn test
 }
 
 tasks.named("bootJar") {
-	dependsOn tasks.named("asciidoctor")
+    dependsOn tasks.named("asciidoctor")
 
-	copy {
-		from asciidoctor.outputDir
-		into "src/main/resources/static/docs"
-	}
+    copy {
+        from asciidoctor.outputDir
+        into "src/main/resources/static/docs"
+    }
+}
+
+jacocoTestReport {
+    dependsOn tasks.test
+    reports {
+        xml.required = false
+        html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
+        csv.required = false
+    }
+    classDirectories.setFrom(jacocoTargetClassDirectories())
+    finalizedBy(jacocoTestCoverageVerification)
+}
+
+jacocoTestCoverageVerification {
+    classDirectories.setFrom(jacocoTargetClassDirectories())
+
+    violationRules {
+        rule {
+            enabled = true
+            element = "CLASS"
+
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = 0
+            }
+        }
+    }
 }
