@@ -238,7 +238,7 @@ public class PaymentServiceUnitExceptionTest {
         }
 
         @Test
-        @DisplayName("")
+        @DisplayName("잔액 부족으로 인해 출금이 불가능할때 예외를 발생시킨다.")
         public void withdraw_InsufficientBalance_ThrowException(){
             //given
             Long tran_amt = 5000L;
