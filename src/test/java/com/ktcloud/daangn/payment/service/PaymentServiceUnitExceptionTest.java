@@ -5,6 +5,7 @@ import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
+import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.repository.PaymentRepository;
@@ -271,7 +272,48 @@ public class PaymentServiceUnitExceptionTest {
     @Nested
     @DisplayName("거래 생성 예외 테스트")
     class RequestPaymentExceptionTest {
-        // TODO 현재 검증 로직이 없으므로 추후 추가 예정
+
+        @Test
+        @DisplayName("존재하지 않는 게시물은 거래를 생성 시 예외가 발생한다.")
+        public void requestPayment_NonExistentPost_ThrowsException(){
+            //given
+            Long tranAmt = 5000L, postId = 1L;
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(postId, tranAmt);
+
+            given(postService.getPostOrThrow(dto.postId())).willThrow(new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
+            //when, then
+            assertThatThrownBy(() -> paymentService.requestPayment(dto))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("해당 게시글이 존재하지 않습니다.");
+        }
+
+        @Test
+        @DisplayName("이미 판매된 상품은 거래를 생성 시 예외가 발생한다.")
+        public void requestPayment_AlreadySoldPost_ThrowsException() {
+            //given
+            Address address = new Address("서울", "강남", "역삼");
+            Long tranAmt = 5000L, postId = 1L;
+
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(postId, tranAmt);
+
+            Member toMember = Member.builder()
+                    .id(2L)
+                    .email("test1@test.com")
+                    .nickName("테스트2")
+                    .balance(0L)
+                    .address(address)
+                    .build();
+
+            Post targetPost = new Post(toMember, "제목", "내용", tranAmt, address);
+            ReflectionTestUtils.setField(targetPost, "id", postId);
+            ReflectionTestUtils.setField(targetPost, "status", PostStatus.SOLD);
+
+            given(postService.getPostOrThrow(postId)).willReturn(targetPost);
+            //when, then
+            assertThatThrownBy(() -> paymentService.requestPayment(dto))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessage("이미 판매된 제품입니다.");
+        }
     }
 
     @Nested
@@ -343,7 +385,7 @@ public class PaymentServiceUnitExceptionTest {
 
         @Test
         @DisplayName("이미 판매완료된 게시물일 경우 예외가 발생한다")
-        void confirmPayment_AlreadySoldPost_ThrowsException() {
+        public void confirmPayment_AlreadySoldPost_ThrowsException() {
             //given
             Long tranAmt = 5000L;
             Long postId = 1L;
@@ -375,7 +417,7 @@ public class PaymentServiceUnitExceptionTest {
 
         @Test
         @DisplayName("구매자의 잔액이 부족할 경우 예외가 발생한다")
-        void confirmPayment_InsufficientBalance_ThrowsException() {
+        public void confirmPayment_InsufficientBalance_ThrowsException() {
             //given
             Long tranAmt = 5000L;
             Long postId = 1L;
