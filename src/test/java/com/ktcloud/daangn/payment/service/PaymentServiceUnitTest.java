@@ -11,6 +11,7 @@ import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
 import com.ktcloud.daangn.payment.repository.PaymentRepository;
 import com.ktcloud.daangn.post.entity.Post;
+import com.ktcloud.daangn.post.entity.PostStatus;
 import com.ktcloud.daangn.post.service.PostService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -164,6 +165,7 @@ class PaymentServiceUnitTest {
             assertThat(result.balance()).isEqualTo(INITIAL_BALANCE - tranAmt);
 
             assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE + tranAmt);
+            assertThat(targetPost.getStatus()).isEqualTo(PostStatus.SOLD);
         }
     }
 }
