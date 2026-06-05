@@ -105,7 +105,23 @@ class PaymentServiceUnitTest {
         @DisplayName("거래 요청을 정상적으로 진행하여 링크 발급 진행한다.")
         public void requestPayment_ValidRequest_Success(){
             //given
-            PaymentInitRequestDto dto = new PaymentInitRequestDto(1L, 5000L);
+            Address address = new Address("서울", "강남", "역삼");
+            Long tranAmt = 5000L, postId = 1L;
+
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(postId, tranAmt);
+
+            Member toMember = Member.builder()
+                    .id(2L)
+                    .email("test1@test.com")
+                    .nickName("테스트2")
+                    .balance(INITIAL_BALANCE)
+                    .address(address)
+                    .build();
+
+            Post targetPost = new Post(toMember, "제목", "내용", tranAmt, address);
+            ReflectionTestUtils.setField(targetPost, "id", postId);
+
+            given(postService.getPostOrThrow(postId)).willReturn(targetPost);
             //when
             String result = paymentService.requestPayment(dto);
             //then
