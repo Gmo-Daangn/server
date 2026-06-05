@@ -11,6 +11,7 @@ import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
 import com.ktcloud.daangn.payment.repository.PaymentRepository;
 import com.ktcloud.daangn.post.entity.Post;
+import com.ktcloud.daangn.post.entity.PostStatus;
 import com.ktcloud.daangn.post.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -61,6 +62,8 @@ public class PaymentServiceImpl implements PaymentService {
         Post post = postService.getPostOrThrow(dto.postId());
 
         if (fromMemberId.equals(post.getMemberId())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다.");
+        //TODO 제품의 판매정보는 거래 생성으로 이동될 가능성이 존재
+        if (post.getStatus().equals(PostStatus.SOLD)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 판매된 제품입니다.");
 
         Member targetMember = memberService.getByIdOrThrow(post.getMember().getId());
         Member fromMember = memberService.getByIdOrThrow(fromMemberId);
