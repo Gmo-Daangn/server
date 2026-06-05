@@ -81,4 +81,8 @@ public class Post {
     public Long getMemberId() {
         return member.getId();
     }
+
+    public void markAsSold() {
+        this.status = PostStatus.SOLD;
+    }
 }

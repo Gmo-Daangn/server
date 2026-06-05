@@ -86,6 +86,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .tranSeqNo(dto.tranSeqNo())
                 .build();
 
+        post.markAsSold();
+
         paymentRepository.save(fromMemberHistory);
         paymentRepository.save(targetMemberHistory);
 
