@@ -77,7 +77,7 @@ class PostServiceImplTest {
                 return savedPost;
             });
 
-            PostRequestDto request = new PostRequestDto("자전거", "상태 좋아요", 100000, MEMBER_ID);
+            PostRequestDto request = new PostRequestDto("자전거", "상태 좋아요", 100000L, MEMBER_ID);
             PostCreateResponseDto result = postService.createPost(request);
 
             assertThat(result.postId()).isEqualTo(POST_ID);
@@ -87,7 +87,7 @@ class PostServiceImplTest {
             verify(postRepository).save(captor.capture());
             Post captured = captor.getValue();
             assertThat(captured.getMemberId()).isEqualTo(MEMBER_ID);
-            assertThat(captured.getLocation()).isEqualTo("서울시");
+            assertThat(captured.getLocation()).isEqualTo(member.getAddress());
             assertThat(captured.getStatus()).isEqualTo(PostStatus.FOR_SALE);
         }
 
@@ -97,7 +97,7 @@ class PostServiceImplTest {
             given(memberService.getByIdOrThrow(MEMBER_ID))
                     .willThrow(new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "존재하지 않는 ID입니다."));
 
-            PostRequestDto request = new PostRequestDto("자전거", "상태 좋아요", 100000, MEMBER_ID);
+            PostRequestDto request = new PostRequestDto("자전거", "상태 좋아요", 100000L, MEMBER_ID);
 
             assertThatThrownBy(() -> postService.createPost(request))
                     .isInstanceOf(InvalidInputException.class)
