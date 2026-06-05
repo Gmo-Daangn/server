@@ -30,7 +30,8 @@ public class PostServiceImpl implements PostService {
                         request.title(),
                         request.content(),
                         request.price(),
-                        member.getAddress().city())
+                        member.getAddress()
+                )
         );
 
         return new PostCreateResponseDto(

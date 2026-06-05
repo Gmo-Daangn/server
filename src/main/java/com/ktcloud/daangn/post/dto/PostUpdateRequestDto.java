@@ -13,7 +13,7 @@ public record PostUpdateRequestDto(
         String content,
         @NotNull
         @PositiveOrZero
-        Integer price,
+        Long price,
         PostStatus status,
         @NotNull
         @Positive

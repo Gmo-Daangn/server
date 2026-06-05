@@ -165,7 +165,7 @@ class PostServiceImplTest {
             PostUpdateRequestDto request = new PostUpdateRequestDto(
                     "수정된 제목",
                     "수정된 내용",
-                    90000,
+                    90000L,
                     PostStatus.RESERVED,
                     MEMBER_ID
             );
@@ -187,7 +187,7 @@ class PostServiceImplTest {
             PostUpdateRequestDto request = new PostUpdateRequestDto(
                     "수정된 제목",
                     "수정된 내용",
-                    90000,
+                    90000L,
                     null,
                     MEMBER_ID
             );
@@ -206,7 +206,7 @@ class PostServiceImplTest {
             PostUpdateRequestDto request = new PostUpdateRequestDto(
                     "수정된 제목",
                     "수정된 내용",
-                    90000,
+                    90000L,
                     PostStatus.SOLD,
                     2L
             );
@@ -247,7 +247,7 @@ class PostServiceImplTest {
     }
 
     private Post savedPost(Long postId) {
-        Post post = new Post(member, "자전거", "상태 좋아요", 100000, "서울시");
+        Post post = new Post(member, "자전거", "상태 좋아요", 100000L, new Address("서울시", "동작구", "사당동"));
         ReflectionTestUtils.setField(post, "id", postId);
         return post;
     }

@@ -12,7 +12,7 @@ public record PostRequestDto(
         String content,
         @NotNull
         @PositiveOrZero
-        Integer price,
+        Long price,
         @NotNull
         @Positive
         Long memberId

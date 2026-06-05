@@ -1,5 +1,6 @@
 package com.ktcloud.daangn.post.entity;
 
+import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.member.entity.Member;
 import jakarta.persistence.*;
 import lombok.Builder;
@@ -29,8 +30,8 @@ public class Post {
     @Column(columnDefinition = "TEXT")
     private String content;
 
-    private Integer price;
-    private String location;
+    private Long price;
+    private Address location;
 
     @Enumerated(EnumType.STRING)
     private PostStatus status;
@@ -39,7 +40,7 @@ public class Post {
     private LocalDateTime createdAt;
 
     @Builder
-    public Post(Member member, String title, String content, Integer price, String location) {
+    public Post(Member member, String title, String content, Long price, Address location) {
         this.member = member;
         this.title = title;
         this.content = content;
@@ -50,7 +51,7 @@ public class Post {
         this.createdAt = LocalDateTime.now();
     }
 
-    public static Post create(Member member, String title, String content, Integer price, String location) {
+    public static Post create(Member member, String title, String content, Long price, Address location) {
         return Post.builder()
                 .member(member)
                 .title(title)
@@ -64,7 +65,7 @@ public class Post {
         this.viewCount++;
     }
 
-    public void update(String title, String content, Integer price, PostStatus status) {
+    public void update(String title, String content, Long price, PostStatus status) {
         this.title = title;
         this.content = content;
         this.price = price;
