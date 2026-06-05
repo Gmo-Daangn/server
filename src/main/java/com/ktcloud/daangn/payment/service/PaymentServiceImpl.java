@@ -62,7 +62,6 @@ public class PaymentServiceImpl implements PaymentService {
         Post post = postService.getPostOrThrow(dto.postId());
 
         if (fromMemberId.equals(post.getMemberId())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다.");
-        //TODO 제품의 판매정보는 거래 생성으로 이동될 가능성이 존재
         if (post.getStatus().equals(PostStatus.SOLD)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 판매된 제품입니다.");
 
         Member targetMember = memberService.getByIdOrThrow(post.getMember().getId());
@@ -99,6 +98,10 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public String requestPayment(PaymentInitRequestDto dto) {
+        Post post = postService.getPostOrThrow(dto.postId());
+
+        if (post.getStatus().equals(PostStatus.SOLD)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 판매된 제품입니다.");
+
         UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
         //todo 추후 amount과 postId는 외부로 노출 하지않는 방향으로 변경 예정
         return tranSeqNo+"_"+dto.amount()+"_"+dto.postId();
