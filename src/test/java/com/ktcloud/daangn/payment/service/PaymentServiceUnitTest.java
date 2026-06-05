@@ -98,7 +98,7 @@ class PaymentServiceUnitTest {
 
     @Nested
     @DisplayName("거래 생성 정상 테스트")
-    class RequestPayment{
+    class RequestPaymentTest{
 
         @Test
         @DisplayName("거래 요청을 정상적으로 진행하여 링크 발급 진행한다.")
@@ -117,7 +117,7 @@ class PaymentServiceUnitTest {
 
     @Nested
     @DisplayName("거래 진행 정상 테스트")
-    class ConfirmPayment{
+    class ConfirmPaymentTest{
 
         @Test
         @DisplayName("생성된 거래가 정상적으로 진행된다.")
