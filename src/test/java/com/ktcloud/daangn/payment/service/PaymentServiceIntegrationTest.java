@@ -2,7 +2,6 @@ package com.ktcloud.daangn.payment.service;
 
 import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.member.entity.Member;
-import com.ktcloud.daangn.member.service.MemberService;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
 import jakarta.persistence.EntityManager;

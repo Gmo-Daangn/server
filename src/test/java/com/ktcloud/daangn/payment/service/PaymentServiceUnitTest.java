@@ -150,9 +150,11 @@ class PaymentServiceUnitTest {
 
             String url = UuidCreator.getTimeOrderedEpoch() + "_" + tranAmt + "_" + targetPost.getId();
             PaymentTokenDto dto = PaymentTokenDto.parse(url);
+
             given(memberService.getByIdOrThrow(fromMemberId)).willReturn(fromMember);
             given(memberService.getByIdOrThrow(toMemberId)).willReturn(toMember);
             given(postService.getPostOrThrow(postId)).willReturn(targetPost);
+
             //when
             PaymentResponseDto result = paymentService.confirmPayment(fromMember.getId(), dto);
             //then

@@ -260,4 +260,11 @@ public class PaymentServiceUnitExceptionTest {
                     .hasMessage("잔액이 부족합니다.");
         }
     }
+
+    @Nested
+    @DisplayName("거래 생성 예외 테스트")
+    class RequestPaymentExceptionTest{
+        // TODO 현재 검증 로직이 없으므로 추후 추가 예정
+    }
+
 }
