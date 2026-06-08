@@ -35,6 +35,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
 
     private final Long TRAN_AMT = 5000L;
     private static final Long INITIAL_BALANCE = 5000L;
+    private static final Long NON_EXISTENT_ID = Long.MAX_VALUE;
 
     private Long toMemberId;
     private Long fromMemberId;
@@ -86,7 +87,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("은행으로부터 존재하지 않는 memberId가 담긴 API 요청에 대한 예외를 발생한다.")
         public void deposit_NonExistentMember_ThrowsException() {
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, 99L);
+            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, NON_EXISTENT_ID);
             //when, then
             assertThatThrownBy(() -> paymentService.deposit(dto))
                     .isInstanceOf(InvalidInputException.class)
@@ -157,7 +158,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("은행으로부터 존재하지 않는 memberId가 담긴 API 요청에 대한 예외를 발생한다.")
         public void withdraw_NonExistentMember_ThrowsException() {
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, 99L);
+            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, NON_EXISTENT_ID);
 
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
@@ -222,7 +223,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("존재하지 않는 게시물은 거래를 생성 시 예외가 발생한다.")
         public void requestPayment_NonExistentPost_ThrowsException(){
             //given
-            PaymentInitRequestDto dto = new PaymentInitRequestDto(99L, TRAN_AMT);
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(NON_EXISTENT_ID, TRAN_AMT);
             //when, then
             assertThatThrownBy(() -> paymentService.requestPayment(dto))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -278,7 +279,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
             String[] paseUrl = initUrl(false, TRAN_AMT).split("_");
             String tranSeqNo = paseUrl[0];
             Long amount = Long.parseLong(paseUrl[1]);
-            PaymentTokenDto dto = new PaymentTokenDto(tranSeqNo, amount, 99L);
+            PaymentTokenDto dto = new PaymentTokenDto(tranSeqNo, amount, NON_EXISTENT_ID);
             initFromMember();
 
             //when, then

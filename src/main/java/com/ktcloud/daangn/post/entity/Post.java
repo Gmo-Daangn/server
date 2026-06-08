@@ -31,6 +31,8 @@ public class Post {
     private String content;
 
     private Long price;
+
+    @Embedded
     private Address location;
 
     @Enumerated(EnumType.STRING)

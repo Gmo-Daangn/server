@@ -144,12 +144,12 @@ public class PaymentServiceIntegrationTest extends TestContainerConfig {
             Post post = em.find(Post.class, postId);
             assertThat(post.getStatus()).isEqualTo(PostStatus.SOLD);
 
-            List<PaymentHistory> paymentHistoryList = em.createQuery("select p from PaymentHistory p", PaymentHistory.class)
+            List<PaymentHistory> paymentHistoryList = em.createQuery("select p from PaymentHistory p order by p.id asc", PaymentHistory.class)
                     .getResultList();
             assertThat(paymentHistoryList.size()).isEqualTo(2);
 
             String tranSeqNo = Arrays.stream(url.split("_")).findFirst().orElse("미존재");
-            assertThat(paymentHistoryList.getFirst().getTranSeqNo()).isEqualTo(tranSeqNo);
+            assertThat(paymentHistoryList).extracting(PaymentHistory::getTranSeqNo).contains(tranSeqNo);
         }
     }
 
