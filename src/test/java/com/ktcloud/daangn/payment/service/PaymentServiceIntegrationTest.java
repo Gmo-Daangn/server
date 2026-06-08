@@ -1,9 +1,18 @@
 package com.ktcloud.daangn.payment.service;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.ktcloud.daangn.common.valueObject.Address;
+import com.ktcloud.daangn.config.TestContainerConfig;
 import com.ktcloud.daangn.member.entity.Member;
+import com.ktcloud.daangn.member.service.MemberService;
+import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
+import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
+import com.ktcloud.daangn.payment.entity.PaymentHistory;
+import com.ktcloud.daangn.post.entity.Post;
+import com.ktcloud.daangn.post.entity.PostStatus;
+import com.ktcloud.daangn.post.service.PostService;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,12 +23,17 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatList;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-public class PaymentServiceIntegrationTest {
+public class PaymentServiceIntegrationTest extends TestContainerConfig {
 
     @Autowired
     private PaymentServiceImpl paymentService;
@@ -28,14 +42,18 @@ public class PaymentServiceIntegrationTest {
 
     private static final Long INITIAL_BALANCE = 10000L;// 초기 잔액
     private static final String INITIAL_NAME = "테스트";
+    private static final Long TRAN_AMT = 5000L;
+    private Long toMemberId;
+    private Long fromMemberId;
+    private Long postId;
+    @Autowired
+    private MemberService memberService;
 
     @BeforeEach
-    public void createMember(){
-
+    public void initToMember(){
         Address address = new Address("서울시", "동작구", "사당동");
         Member member = Member.builder()
-                .id(1L)
-                .email("test@test.com")
+                .email("test1@test.com")
                 .nickName(INITIAL_NAME)
                 .balance(INITIAL_BALANCE)
                 .address(address)
@@ -43,6 +61,7 @@ public class PaymentServiceIntegrationTest {
 
         em.persist(member);
         em.flush();
+        toMemberId = member.getId();
         em.clear();
     }
 
@@ -54,17 +73,16 @@ public class PaymentServiceIntegrationTest {
         @DisplayName("은행으로부터 정상적인 입금 확인 API 요청이 처리된다.")
         public void deposit_ValidRequest_Success(){
             //given
-            Long tranAmt = 5000L;
 
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tranAmt, 1L);
+            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, toMemberId);
             //when
             PaymentResponseDto result = paymentService.deposit(dto);
             //then
             assertThat(result.name()).isEqualTo(INITIAL_NAME);
-            assertThat(result.balance()).isEqualTo(INITIAL_BALANCE + tranAmt);
+            assertThat(result.balance()).isEqualTo(INITIAL_BALANCE + TRAN_AMT);
 
             Member findMember = em.find(Member.class, dto.memberId());
-            assertThat(findMember.getBalance()).isEqualTo(INITIAL_BALANCE + tranAmt);
+            assertThat(findMember.getBalance()).isEqualTo(INITIAL_BALANCE + TRAN_AMT);
         }
     }
 
@@ -76,17 +94,93 @@ public class PaymentServiceIntegrationTest {
         @DisplayName("은행으로부터 정상적인 출금 확인 API 요청이 처리된다.")
         public void withdraw_ValidRequest_Success(){
             //given
-            Long tranAmt = 5000L;
-
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tranAmt, 1L);
+            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, toMemberId);
             //when
             PaymentResponseDto result = paymentService.withdraw(dto);
             //then
             assertThat(result.name()).isEqualTo(INITIAL_NAME);
-            assertThat(result.balance()).isEqualTo(INITIAL_BALANCE - tranAmt);
+            assertThat(result.balance()).isEqualTo(INITIAL_BALANCE - TRAN_AMT);
 
             Member findMember = em.find(Member.class, dto.memberId());
-            assertThat(findMember.getBalance()).isEqualTo(INITIAL_BALANCE - tranAmt);
+            assertThat(findMember.getBalance()).isEqualTo(INITIAL_BALANCE - TRAN_AMT);
         }
+    }
+
+    @Nested
+    @DisplayName("거래 생성 통합 테스트")
+    class RequestPaymentTest {
+
+        @Test
+        @DisplayName("거래 요청을 정상적으로 진행하여 링크 발급 진행한다.")
+        public void requestPayment_ValidRequest_Success(){
+            //given
+            initPost();
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(postId, TRAN_AMT);
+            //when
+            String result = paymentService.requestPayment(dto);
+            //then
+            String[] results = result.split("_");
+            assertThat(results.length).isEqualTo(3);
+            assertThat(results[0]).isNotBlank();
+            assertThat(results[1]).isEqualTo(TRAN_AMT.toString());
+            assertThat(results[2]).isEqualTo(postId.toString());
+        }
+    }
+    
+    @Nested
+    @DisplayName("거래 진행 통합 테스트")
+    class ConfirmPaymentTest {
+        
+        @Test
+        @DisplayName("생성된 거래가 정상적으로 진행된다.")
+        public void confirmPayment_ValidRequest_Success(){
+            //given
+            initPost();
+            initFromMember();
+            String url = UuidCreator.getTimeOrderedEpoch() + "_" + TRAN_AMT + "_" + postId;
+            PaymentTokenDto dto = PaymentTokenDto.parse(url);
+            //when
+            paymentService.confirmPayment(fromMemberId, dto);
+            //then
+            Member toMember = em.find(Member.class, toMemberId);
+            Member fromMember = em.find(Member.class, fromMemberId);
+            assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE + TRAN_AMT);
+            assertThat(fromMember.getBalance()).isEqualTo(INITIAL_BALANCE - TRAN_AMT);
+
+            Post post = em.find(Post.class, postId);
+            assertThat(post.getStatus()).isEqualTo(PostStatus.SOLD);
+
+            List<PaymentHistory> paymentHistoryList = em.createQuery("select p from PaymentHistory p", PaymentHistory.class)
+                    .getResultList();
+            assertThat(paymentHistoryList.size()).isEqualTo(2);
+
+            String tranSeqNo = Arrays.stream(url.split("_")).findFirst().orElse("미존재");
+            assertThat(paymentHistoryList.getFirst().getTranSeqNo()).isEqualTo(tranSeqNo);
+        }
+    }
+
+    private void initFromMember (){
+        Address address = new Address("서울시", "동작구", "사당동");
+        Member member = Member.builder()
+                .email("test2@test.com")
+                .nickName("구매자")
+                .balance(INITIAL_BALANCE)
+                .address(address)
+                .build();
+
+        em.persist(member);
+        em.flush();
+        fromMemberId = member.getId();
+        em.clear();
+    }
+
+    private void initPost() {
+        Address address = new Address("서울시", "동작구", "사당동");
+        Member toMember = em.find(Member.class, toMemberId);
+        Post targetPost = new Post(toMember, "제목", "내용", TRAN_AMT, address);
+        em.persist(targetPost);
+        em.flush();
+        postId = targetPost.getId();
+        em.clear();
     }
 }
