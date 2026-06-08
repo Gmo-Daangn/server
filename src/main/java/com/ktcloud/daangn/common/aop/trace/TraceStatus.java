@@ -1,4 +1,4 @@
-package com.ktcloud.daangn.config.aop.trace;
+package com.ktcloud.daangn.common.aop.trace;
 
 public final class TraceStatus {
 

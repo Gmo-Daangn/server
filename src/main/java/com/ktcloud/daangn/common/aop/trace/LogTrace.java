@@ -1,4 +1,4 @@
-package com.ktcloud.daangn.config.aop.trace;
+package com.ktcloud.daangn.common.aop.trace;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,7 +1,7 @@
-package com.ktcloud.daangn.config.aop;
+package com.ktcloud.daangn.common.aop;
 
-import com.ktcloud.daangn.config.aop.trace.LogTrace;
-import com.ktcloud.daangn.config.aop.trace.TraceStatus;
+import com.ktcloud.daangn.common.aop.trace.LogTrace;
+import com.ktcloud.daangn.common.aop.trace.TraceStatus;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
