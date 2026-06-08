@@ -1,11 +1,13 @@
 package com.ktcloud.daangn.payment.service;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.config.TestContainerConfig;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
+import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
 import com.ktcloud.daangn.post.entity.Post;
 import jakarta.persistence.EntityManager;
@@ -18,7 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -64,7 +66,16 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
             //given
             PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, toMemberId);
 
-            existingPaymentHistory(dto);
+            Member member = em.find(Member.class, dto.memberId());
+            PaymentHistory paymentHistory = PaymentHistory.builder()
+                    .member(member)
+                    .tranSeqNo(dto.tran_seq_no())
+                    .changedCash(dto.tran_amt())
+                    .build();
+            em.persist(paymentHistory);
+            em.flush();
+            em.clear();
+
             //when, then
             assertThatThrownBy(() -> paymentService.deposit(dto))
                     .isInstanceOf(InvalidInputException.class)
@@ -126,7 +137,16 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
             //given
             PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, toMemberId);
 
-            existingPaymentHistory(dto);
+            Member member = em.find(Member.class, dto.memberId());
+            PaymentHistory paymentHistory = PaymentHistory.builder()
+                    .member(member)
+                    .tranSeqNo(dto.tran_seq_no())
+                    .changedCash(dto.tran_amt())
+                    .build();
+            em.persist(paymentHistory);
+            em.flush();
+            em.clear();
+
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
                     .isInstanceOf(InvalidInputException.class)
@@ -142,7 +162,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
                     .isInstanceOf(InvalidInputException.class)
-                    .hasMessage("존재하지 않는 회원입니다.");
+                    .hasMessage("존재하지 않는 ID입니다.");
         }
 
         @Test
@@ -218,22 +238,101 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
             PaymentInitRequestDto dto = new PaymentInitRequestDto(postId, TRAN_AMT);
             //when, then
             assertThatThrownBy(() -> paymentService.requestPayment(dto))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidInputException.class)
                     .hasMessage("이미 판매된 제품입니다.");
         }
 
     }
 
-    private void existingPaymentHistory(PaymentRequestDto dto) {
-        Member member = em.find(Member.class, dto.memberId());
-        PaymentHistory paymentHistory = PaymentHistory.builder()
-                .member(member)
-                .tranSeqNo(dto.tran_seq_no())
-                .changedCash(dto.tran_amt())
-                .build();
-        em.persist(paymentHistory);
-        em.flush();
-        em.clear();
+    @Nested
+    @DisplayName("거래 진행 예외 테스트")
+    class confirmPaymentExceptionTest {
+
+        @Test
+        @DisplayName("이미 처리된 거래코드일 경우 예외가 발생한다.")
+        public void confirmPayment_DuplicateTranSeqNo_ThrowsException() {
+            //given
+            PaymentTokenDto dto = PaymentTokenDto.parse(initUrl(false, TRAN_AMT));
+
+            Member member = em.find(Member.class, toMemberId);
+            PaymentHistory paymentHistory = PaymentHistory.builder()
+                    .member(member)
+                    .tranSeqNo(dto.tranSeqNo())
+                    .changedCash(dto.amount())
+                    .build();
+            em.persist(paymentHistory);
+            em.flush();
+            em.clear();
+
+            initFromMember();
+            //when, then
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, dto))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessage("이미 진행된 거래입니다.");
+        }
+
+        @Test
+        @DisplayName("게시물이 존재하지 않을 경우 예외가 발생한다.")
+        public void confirmPayment_NonExistentPost_ThrowsException() {
+            //given
+            String[] paseUrl = initUrl(false, TRAN_AMT).split("_");
+            String tranSeqNo = paseUrl[0];
+            Long amount = Long.parseLong(paseUrl[1]);
+            PaymentTokenDto dto = new PaymentTokenDto(tranSeqNo, amount, 99L);
+            initFromMember();
+
+            //when, then
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, dto))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("해당 게시글이 존재하지 않습니다.");
+        }
+
+        @Test
+        @DisplayName("본인의 게시물을 결제 할 수 없다.")
+        public void confirmPayment_SelfTransaction_ThrowsException() {
+            //given
+            PaymentTokenDto dto = PaymentTokenDto.parse(initUrl(false, TRAN_AMT));
+
+            //when, then
+            assertThatThrownBy(() -> paymentService.confirmPayment(toMemberId, dto))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessage("잘못된 접근입니다.");
+        }
+
+        @Test
+        @DisplayName("이미 판매완료된 게시물일 경우 예외가 발생한다")
+        public void confirmPayment_AlreadySoldPost_ThrowsException() {
+            //given
+            PaymentTokenDto dto = PaymentTokenDto.parse(initUrl(true, TRAN_AMT));
+            initFromMember();
+
+            //when, then
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, dto))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessage("이미 판매된 제품입니다.");
+        }
+
+        @Test
+        @DisplayName("구매자의 잔액이 부족할 경우 예외가 발생한다")
+        public void confirmPayment_InsufficientBalance_ThrowsException() {
+            //given
+            PaymentTokenDto dto = PaymentTokenDto.parse(initUrl(false, INITIAL_BALANCE + 1L));
+            initFromMember();
+
+            //when, then 예외 학인
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, dto))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessage("잔액이 부족합니다.");
+
+            em.flush();
+            em.clear();
+            //then DB에 잔액 변경이 반영되지 않고 원래대로 남아있는지 검증
+            Member fromMember = em.find(Member.class, fromMemberId);
+            Member toMember = em.find(Member.class, toMemberId);
+
+            assertThat(fromMember.getBalance()).isEqualTo(INITIAL_BALANCE);
+            assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE);
+        }
     }
 
     private void initPost(Boolean isSold) {
@@ -253,5 +352,25 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         em.flush();
         postId = post.getId();
         em.clear();
+    }
+
+    public void initFromMember() {
+        Address address = new Address("서울시", "동작구", "사당동");
+        Member member = Member.builder()
+                .email("test2@test.com")
+                .nickName("구매자")
+                .balance(INITIAL_BALANCE)
+                .address(address)
+                .build();
+
+        em.persist(member);
+        em.flush();
+        fromMemberId = member.getId();
+        em.clear();
+    }
+
+    private String initUrl(Boolean isSold, Long tranAmt) {
+        initPost(isSold);
+        return UuidCreator.getTimeOrderedEpoch() + "_" + tranAmt + "_" + postId;
     }
 }
