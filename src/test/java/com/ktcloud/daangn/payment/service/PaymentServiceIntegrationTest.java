@@ -12,7 +12,6 @@ import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
 import com.ktcloud.daangn.post.entity.Post;
 import com.ktcloud.daangn.post.entity.PostStatus;
-import com.ktcloud.daangn.post.service.PostService;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,10 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatList;
 
 @SpringBootTest
 @ActiveProfiles("test")
