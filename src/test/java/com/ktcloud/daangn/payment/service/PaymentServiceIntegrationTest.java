@@ -43,8 +43,6 @@ public class PaymentServiceIntegrationTest extends TestContainerConfig {
     private Long toMemberId;
     private Long fromMemberId;
     private Long postId;
-    @Autowired
-    private MemberService memberService;
 
     @BeforeEach
     public void initToMember(){
