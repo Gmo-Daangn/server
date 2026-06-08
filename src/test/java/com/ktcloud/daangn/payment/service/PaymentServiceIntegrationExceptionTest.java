@@ -4,8 +4,10 @@ import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.config.TestContainerConfig;
 import com.ktcloud.daangn.member.entity.Member;
+import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
+import com.ktcloud.daangn.post.entity.Post;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,7 +19,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.BDDMockito.given;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -193,6 +194,36 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         }
     }
 
+    @Nested
+    @DisplayName("거래 생성 예외 테스트")
+    class RequestPaymentExceptionTest {
+
+        @Test
+        @DisplayName("존재하지 않는 게시물은 거래를 생성 시 예외가 발생한다.")
+        public void requestPayment_NonExistentPost_ThrowsException(){
+            //given
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(99L, TRAN_AMT);
+            //when, then
+            assertThatThrownBy(() -> paymentService.requestPayment(dto))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("해당 게시글이 존재하지 않습니다.");
+        }
+
+        @Test
+        @DisplayName("이미 판매된 상품은 거래를 생성 시 예외가 발생한다.")
+        public void requestPayment_AlreadySoldPost_ThrowsException() {
+            //given
+            initPost(true);
+
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(postId, TRAN_AMT);
+            //when, then
+            assertThatThrownBy(() -> paymentService.requestPayment(dto))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("이미 판매된 제품입니다.");
+        }
+
+    }
+
     private void existingPaymentHistory(PaymentRequestDto dto) {
         Member member = em.find(Member.class, dto.memberId());
         PaymentHistory paymentHistory = PaymentHistory.builder()
@@ -202,6 +233,25 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
                 .build();
         em.persist(paymentHistory);
         em.flush();
+        em.clear();
+    }
+
+    private void initPost(Boolean isSold) {
+        Member member = em.find(Member.class, toMemberId);
+        Address address = new Address("서울시", "동작구", "사당동");
+        Post post = Post.builder()
+                .member(member)
+                .title("제목")
+                .content("내용")
+                .price(TRAN_AMT)
+                .location(address)
+                .build();
+
+        if (isSold) post.markAsSold();
+
+        em.persist(post);
+        em.flush();
+        postId = post.getId();
         em.clear();
     }
 }
