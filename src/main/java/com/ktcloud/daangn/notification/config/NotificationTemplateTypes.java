@@ -6,4 +6,7 @@ public final class NotificationTemplateTypes {
     }
 
     public static final String CHAT = "CHAT";
+    public static final String DEPOSIT_COMPLETE = "DEPOSIT_COMPLETE";
+    public static final String PAYMENT_REQUEST = "PAYMENT_REQUEST";
+    public static final String PAYMENT_COMPLETE = "PAYMENT_COMPLETE";
 }
