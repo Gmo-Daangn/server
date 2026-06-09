@@ -2,7 +2,6 @@ package com.ktcloud.daangn.auth.service;
 
 import com.ktcloud.daangn.auth.dto.AuthSignupRequestDto;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
-import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
