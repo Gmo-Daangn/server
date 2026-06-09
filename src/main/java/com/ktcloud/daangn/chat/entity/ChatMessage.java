@@ -30,9 +30,6 @@ public class ChatMessage {
     private String message;
 
     @Column(nullable = false)
-    private long readCount;
-
-    @Column(nullable = false)
     private boolean edited;
 
     @Column(nullable = false)
@@ -42,22 +39,20 @@ public class ChatMessage {
     private LocalDateTime createdAt;
 
     @Builder
-    public ChatMessage(ChatRoom chatRoom, Member member, String message, long readCount) {
+    public ChatMessage(ChatRoom chatRoom, Member member, String message) {
         this.chatRoom = chatRoom;
         this.member = member;
         this.message = message;
-        this.readCount = readCount;
         this.edited = false;
         this.deleted = false;
         this.createdAt = LocalDateTime.now();
     }
 
-    public static ChatMessage createMessage(ChatRoom chatRoom, Member member, String message, long readCount) {
+    public static ChatMessage createMessage(ChatRoom chatRoom, Member member, String message) {
         return ChatMessage.builder()
                 .chatRoom(chatRoom)
                 .member(member)
                 .message(message)
-                .readCount(readCount)
                 .build();
     }
 
@@ -69,10 +64,6 @@ public class ChatMessage {
     public void delete() {
         this.message = "삭제된 메시지입니다.";
         this.deleted = true;
-    }
-
-    public void markRead() {
-        this.readCount = 0;
     }
 
     public boolean isWrittenBy(Long memberId) {

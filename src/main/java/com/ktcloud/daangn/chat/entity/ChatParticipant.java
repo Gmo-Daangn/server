@@ -25,10 +25,16 @@ public class ChatParticipant {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
+    @Column(nullable = false)
+    private long unreadCount;
+
+    private Long lastReadMessageId;
+
     @Builder
     public ChatParticipant(ChatRoom chatRoom, Member member) {
         this.chatRoom = chatRoom;
         this.member = member;
+        this.unreadCount = 0;
     }
 
     public static ChatParticipant createParticipant(ChatRoom chatRoom, Member member) {
@@ -36,5 +42,22 @@ public class ChatParticipant {
                 .chatRoom(chatRoom)
                 .member(member)
                 .build();
+    }
+
+    public boolean isMember(Long memberId) {
+        return this.member.getId().equals(memberId);
+    }
+
+    public boolean isNotMember(Long memberId) {
+        return !isMember(memberId);
+    }
+
+    public void increaseUnreadCount() {
+        this.unreadCount++;
+    }
+
+    public void markRead(Long lastReadMessageId) {
+        this.lastReadMessageId = lastReadMessageId;
+        this.unreadCount = 0;
     }
 }

@@ -18,6 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,6 +75,68 @@ class ChatMessageServiceImplTest extends TestContainerConfig {
 
         assertThat(deletedMessage.deleted()).isTrue();
         assertThat(deletedMessage.message()).isEqualTo("삭제된 메시지입니다.");
+    }
+
+    @Test
+    @DisplayName("[HAPPY] 채팅방 메시지를 검색하면 삭제되지 않은 메시지만 최신순으로 조회된다.")
+    void search_returnsActiveMessagesByKeywordOrderByNewest() {
+        TestMembers members = createRoom();
+        ChatMessageResponseDto firstMessage = chatMessageService.create(
+                members.roomId(),
+                members.senderId(),
+                "오늘 거래 가능해요"
+        );
+        ChatMessageResponseDto secondMessage = chatMessageService.create(
+                members.roomId(),
+                members.senderId(),
+                "내일 거래 가능해요"
+        );
+        ChatMessageResponseDto deletedMessage = chatMessageService.create(
+                members.roomId(),
+                members.senderId(),
+                "거래 취소 메시지"
+        );
+        chatMessageService.delete(deletedMessage.messageId(), members.senderId());
+
+        List<ChatMessageResponseDto> result = chatMessageService.search(
+                members.roomId(),
+                members.receiverId(),
+                "거래",
+                null,
+                10
+        );
+
+        assertThat(result)
+                .extracting(ChatMessageResponseDto::messageId)
+                .containsExactly(secondMessage.messageId(), firstMessage.messageId());
+    }
+
+    @Test
+    @DisplayName("[HAPPY] 검색어의 LIKE 와일드카드는 일반 문자로 처리된다.")
+    void search_treatsLikeWildcardAsPlainText() {
+        TestMembers members = createRoom();
+        ChatMessageResponseDto percentMessage = chatMessageService.create(
+                members.roomId(),
+                members.senderId(),
+                "100% 가능해요"
+        );
+        chatMessageService.create(
+                members.roomId(),
+                members.senderId(),
+                "100점 가능해요"
+        );
+
+        List<ChatMessageResponseDto> result = chatMessageService.search(
+                members.roomId(),
+                members.receiverId(),
+                "100%",
+                null,
+                10
+        );
+
+        assertThat(result)
+                .extracting(ChatMessageResponseDto::messageId)
+                .containsExactly(percentMessage.messageId());
     }
 
     @Test

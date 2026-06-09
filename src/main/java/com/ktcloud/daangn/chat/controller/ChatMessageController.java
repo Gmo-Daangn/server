@@ -21,7 +21,7 @@ public class ChatMessageController {
     private final SimpMessagingTemplate messagingTemplate;
 
     // 채팅 메시지 목록 조회
-    // TODO: JWT 인증 도입 후 memberId를 `@RequestParam이` 아닌
+    // TODO: JWT 인증 도입 후 memberId를 `@RequestParam`이 아닌
     //       SecurityContextHolder 또는 JWT 토큰에서 추출하도록 변경 필요 (보안 취약점)
     @GetMapping("/messages/{roomId}")
     public BaseResponse<List<ChatMessageResponseDto>> list(
@@ -29,6 +29,20 @@ public class ChatMessageController {
             @RequestParam Long memberId
     ) {
         return BaseResponse.success(chatMessageService.list(roomId, memberId));
+    }
+
+    // 채팅방 메시지 검색
+    // TODO: JWT 인증 도입 후 memberId를 `@RequestParam`이 아닌
+    //       SecurityContextHolder 또는 JWT 토큰에서 추출하도록 변경 필요 (보안 취약점)
+    @GetMapping("/messages/{roomId}/search")
+    public BaseResponse<List<ChatMessageResponseDto>> search(
+            @PathVariable Long roomId,
+            @RequestParam Long memberId,
+            @RequestParam String keyword,
+            @RequestParam(required = false) Long beforeMessageId,
+            @RequestParam(defaultValue = "30") int size
+    ) {
+        return BaseResponse.success(chatMessageService.search(roomId, memberId, keyword, beforeMessageId, size));
     }
 
     // 채팅 메시지 수정

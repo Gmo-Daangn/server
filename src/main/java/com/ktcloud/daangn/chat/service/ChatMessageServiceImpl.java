@@ -10,14 +10,13 @@ import com.ktcloud.daangn.chat.repository.ChatRoomRepository;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.chat.event.ChatMessageSentEvent;
 import com.ktcloud.daangn.member.entity.Member;
-import com.ktcloud.daangn.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -25,10 +24,11 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class ChatMessageServiceImpl implements ChatMessageService {
 
+    private static final int MAX_SEARCH_SIZE = 100;
+
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatParticipantRepository chatParticipantRepository;
-    private final MemberService memberService;
     private final ApplicationEventPublisher eventPublisher;
 
     // 메시지 전송 처리
@@ -36,24 +36,55 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     @Transactional
     public ChatMessageResponseDto create(Long roomId, Long memberId, String message) {
         ChatRoom chatRoom = findRoomByIdOrThrow(roomId);
-        Member member = memberService.getByIdOrThrow(memberId);
-        findParticipantByRoomIdAndMemberIdOrThrow(roomId, memberId);
-        long readCount = Math.max(chatParticipantRepository.countByChatRoom_Id(roomId) - 1, 0);
+        List<ChatParticipant> participants = findParticipantsByRoomId(roomId);
+        ChatParticipant senderParticipant = findParticipantOrThrow(participants, memberId);
+        Member member = senderParticipant.getMember();
+        long unreadCount = countReceivers(participants, memberId);
 
-        ChatMessage chatMessage = chatMessageRepository.save(ChatMessage.createMessage(chatRoom, member, message, readCount));
+        ChatMessage chatMessage = chatMessageRepository.save(ChatMessage.createMessage(chatRoom, member, message));
+        chatRoom.updateLastMessage(chatMessage);
+        senderParticipant.markRead(chatMessage.getId());
+        participants.stream()
+                .filter(participant -> participant.isNotMember(memberId))
+                .forEach(ChatParticipant::increaseUnreadCount);
 
-        publishMessageSent(roomId, memberId, chatMessage, message);
+        publishMessageSent(roomId, memberId, chatMessage, message, participants);
 
-        return ChatMessageResponseDto.from(chatMessage);
+        return ChatMessageResponseDto.from(chatMessage, unreadCount);
     }
 
     // 채팅 메시지 목록 조회
     @Override
     public List<ChatMessageResponseDto> list(Long roomId, Long memberId) {
-        findParticipantByRoomIdAndMemberIdOrThrow(roomId, memberId);
+        List<ChatParticipant> participants = findParticipantsByRoomId(roomId);
+        findParticipantOrThrow(participants, memberId);
 
-        return chatMessageRepository.findByChatRoom_IdOrderByIdAsc(roomId).stream()
-                .map(ChatMessageResponseDto::from)
+        return chatMessageRepository.findByChatRoomIdWithRoomAndMemberOrderByIdAsc(roomId).stream()
+                .map(chatMessage -> ChatMessageResponseDto.from(
+                        chatMessage,
+                        calculateUnreadCount(chatMessage, participants)
+                ))
+                .toList();
+    }
+
+    // 채팅방 메시지 검색
+    @Override
+    public List<ChatMessageResponseDto> search(Long roomId, Long memberId, String keyword, Long beforeMessageId, int size) {
+        String normalizedKeyword = validateKeyword(keyword);
+        int normalizedSize = validateSearchSize(size);
+        List<ChatParticipant> participants = findParticipantsByRoomId(roomId);
+        findParticipantOrThrow(participants, memberId);
+
+        return chatMessageRepository.findMessagesByKeyword(
+                        roomId,
+                        normalizedKeyword,
+                        beforeMessageId,
+                        PageRequest.of(0, normalizedSize)
+                ).stream()
+                .map(chatMessage -> ChatMessageResponseDto.from(
+                        chatMessage,
+                        calculateUnreadCount(chatMessage, participants)
+                ))
                 .toList();
     }
 
@@ -64,8 +95,12 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         ChatMessage chatMessage = findMessageByIdOrThrow(messageId);
         validateEditable(chatMessage, memberId);
         chatMessage.edit(message);
+        updateRoomLastMessageIfNeeded(chatMessage);
 
-        return ChatMessageResponseDto.from(chatMessage);
+        return ChatMessageResponseDto.from(
+                chatMessage,
+                calculateUnreadCount(chatMessage, findParticipantsByRoomId(chatMessage.getChatRoom().getId()))
+        );
     }
 
     // 채팅 메시지 삭제
@@ -75,8 +110,12 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         ChatMessage chatMessage = findMessageByIdOrThrow(messageId);
         validateEditable(chatMessage, memberId);
         chatMessage.delete();
+        updateRoomLastMessageIfNeeded(chatMessage);
 
-        return ChatMessageResponseDto.from(chatMessage);
+        return ChatMessageResponseDto.from(
+                chatMessage,
+                calculateUnreadCount(chatMessage, findParticipantsByRoomId(chatMessage.getChatRoom().getId()))
+        );
     }
 
     private ChatRoom findRoomByIdOrThrow(Long roomId) {
@@ -84,13 +123,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "채팅방이 존재하지 않습니다."));
     }
 
-    private ChatParticipant findParticipantByRoomIdAndMemberIdOrThrow(Long roomId, Long memberId) {
-        return chatParticipantRepository.findByChatRoom_IdAndMember_Id(roomId, memberId)
-                .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "채팅방 참여자가 아닙니다."));
-    }
-
     private ChatMessage findMessageByIdOrThrow(Long messageId) {
-        return chatMessageRepository.findById(messageId)
+        return chatMessageRepository.findByIdWithRoomAndMember(messageId)
                 .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "메시지가 존재하지 않습니다."));
     }
 
@@ -103,17 +137,70 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         }
     }
 
+    private List<ChatParticipant> findParticipantsByRoomId(Long roomId) {
+        return chatParticipantRepository.findByChatRoomIdWithMember(roomId);
+    }
+
+    private ChatParticipant findParticipantOrThrow(List<ChatParticipant> participants, Long memberId) {
+        return participants.stream()
+                .filter(participant -> participant.isMember(memberId))
+                .findFirst()
+                .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "채팅방 참여자가 아닙니다."));
+    }
+
+    private long calculateUnreadCount(ChatMessage chatMessage, List<ChatParticipant> participants) {
+        return participants.stream()
+                .filter(participant -> participant.isNotMember(chatMessage.getMember().getId()))
+                .filter(participant -> participant.getLastReadMessageId() == null
+                        || participant.getLastReadMessageId() < chatMessage.getId())
+                .count();
+    }
+
+    private long countReceivers(List<ChatParticipant> participants, Long senderId) {
+        return participants.stream()
+                .filter(participant -> participant.isNotMember(senderId))
+                .count();
+    }
+
+    private String validateKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "검색어는 비어 있을 수 없습니다.");
+        }
+
+        return keyword.trim()
+                .replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_");
+    }
+
+    private int validateSearchSize(int size) {
+        if (size < 1 || size > MAX_SEARCH_SIZE) {
+            throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "검색 개수는 1 이상 100 이하로 입력해주세요.");
+        }
+
+        return size;
+    }
+
+    private void updateRoomLastMessageIfNeeded(ChatMessage chatMessage) {
+        ChatRoom chatRoom = chatMessage.getChatRoom();
+        if (chatRoom.isLastMessage(chatMessage.getId())) {
+            chatRoom.updateLastMessage(chatMessage);
+        }
+    }
 
     // 채팅 메시지 저장 후 발생하는 이벤트 발행
-    private void publishMessageSent(Long chatRoomId, Long senderId, ChatMessage chatMessage, String message) {
-        List<Long> receiverIds = new ArrayList<>();
+    private void publishMessageSent(
+            Long chatRoomId,
+            Long senderId,
+            ChatMessage chatMessage,
+            String message,
+            List<ChatParticipant> participants
+    ) {
+        List<Long> receiverIds = participants.stream()
+                .map(participant -> participant.getMember().getId())
+                .filter(id -> !id.equals(senderId))
+                .toList();
 
-        for (ChatParticipant participant : chatParticipantRepository.findByChatRoom_Id(chatRoomId)) {
-            Long id = participant.getMember().getId();
-            if (!id.equals(senderId)) {
-                receiverIds.add(id);
-            }
-        }
         if (receiverIds.isEmpty()) {
             return;
         }
@@ -126,7 +213,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 senderId,
                 messageId,
                 messagePreview,
-                List.copyOf(receiverIds)));
+                receiverIds));
     }
 
     // 메시지 미리보기

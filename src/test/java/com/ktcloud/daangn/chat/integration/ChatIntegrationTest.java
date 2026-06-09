@@ -185,6 +185,37 @@ class ChatIntegrationTest extends TestContainerConfig {
                             )
                     ));
 
+            mockMvc.perform(get("/api/v1/chat/messages/{roomId}/search", roomId)
+                            .param("memberId", members.senderId().toString())
+                            .param("keyword", "hello"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data[0].messageId").value(sentMessage.messageId()))
+                    .andExpect(jsonPath("$.data[0].message").value("hello integration"))
+                    .andDo(document("chat-message-search-success",
+                            pathParameters(
+                                    parameterWithName("roomId").description("메시지를 검색할 채팅방 ID")
+                            ),
+                            queryParameters(
+                                    parameterWithName("memberId").description("메시지를 검색하는 회원 ID"),
+                                    parameterWithName("keyword").description("검색어"),
+                                    parameterWithName("beforeMessageId").optional().description("이 메시지 ID보다 이전 메시지만 조회하는 커서"),
+                                    parameterWithName("size").optional().description("검색 결과 개수. 기본값 30, 최대 100")
+                            ),
+                            responseFields(
+                                    fieldWithPath("code").description("HTTP 상태 코드"),
+                                    fieldWithPath("localDateTime").description("응답 시간"),
+                                    fieldWithPath("message").description("응답 메시지"),
+                                    fieldWithPath("data[].messageId").description("메시지 ID"),
+                                    fieldWithPath("data[].roomId").description("채팅방 ID"),
+                                    fieldWithPath("data[].senderId").description("메시지 작성자 회원 ID"),
+                                    fieldWithPath("data[].message").description("검색된 메시지 내용"),
+                                    fieldWithPath("data[].edited").description("메시지 수정 여부"),
+                                    fieldWithPath("data[].deleted").description("메시지 삭제 여부"),
+                                    fieldWithPath("data[].unreadCount").description("메시지를 아직 읽지 않은 참여자 수"),
+                                    fieldWithPath("data[].createdAt").description("메시지 생성 시간")
+                            )
+                    ));
+
             mockMvc.perform(get("/api/v1/chat/rooms")
                             .param("memberId", members.senderId().toString()))
                     .andExpect(status().isOk())
