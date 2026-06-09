@@ -1,8 +1,8 @@
 package com.ktcloud.daangn.auth.service;
 
+import com.ktcloud.daangn.auth.dto.AuthSignupRequestDto;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.common.valueObject.Address;
-import com.ktcloud.daangn.auth.dto.AuthSignupRequestDto;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
 import org.junit.jupiter.api.DisplayName;
@@ -55,7 +55,7 @@ class AuthServiceUnitTest {
             String message = authService.signup(dto);
 
             //then
-            assertThat(message).isEqualTo("회원가입 성공 ID : 1");
+            assertThat(message).isEqualTo("회원가입 성공");
         }
 
         @Test

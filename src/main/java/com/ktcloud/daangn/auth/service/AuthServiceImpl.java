@@ -25,8 +25,8 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "중복된 이메일입니다.");
         }
         String encodePassword = encoder.encode(dto.password());
-        Member savedMember = memberService.register(dto.toMember(encodePassword));
+        memberService.register(dto.toMember(encodePassword));
 
-        return "회원가입 성공 ID : "+savedMember.getId() ;
+        return "회원가입 성공" ;
     }
 }
