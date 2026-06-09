@@ -207,7 +207,8 @@ class ChatMessageServiceImplTest extends TestContainerConfig {
         Long receiverId = saveMember("b");
 
         ChatRoomEnterResponseDto room = chatRoomService.enterDirectRoom(
-                new ChatRoomEnterRequestDto(senderId, receiverId, 400L)
+                senderId,
+                new ChatRoomEnterRequestDto(receiverId, 400L)
         );
 
         return new TestMembers(room.roomId(), senderId, receiverId);

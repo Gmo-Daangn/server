@@ -1,8 +1,10 @@
 package com.ktcloud.daangn.chat.integration;
 
 import com.jayway.jsonpath.JsonPath;
+import com.ktcloud.daangn.auth.dto.CustomUser;
+import com.ktcloud.daangn.auth.jwt.JwtTokenProvider;
+import com.ktcloud.daangn.chat.dto.ChatMessageRequestDto;
 import com.ktcloud.daangn.chat.dto.ChatMessageResponseDto;
-import com.ktcloud.daangn.chat.dto.ChatMessageWriteRequestDto;
 import com.ktcloud.daangn.config.TestContainerConfig;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.entity.MemberRole;
@@ -27,12 +29,17 @@ import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 
@@ -50,6 +57,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.request.RequestDocumentation.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -68,6 +76,9 @@ class ChatIntegrationTest extends TestContainerConfig {
 
     @Autowired
     private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
     @LocalServerPort
     private int port;
@@ -112,7 +123,6 @@ class ChatIntegrationTest extends TestContainerConfig {
                 .andExpect(jsonPath("$.data.created").value(true))
                 .andDo(document("chat-room-enter-success",
                         requestFields(
-                                fieldWithPath("memberId").description("채팅방에 입장하는 회원 ID"),
                                 fieldWithPath("targetMemberId").description("1대1 채팅 상대 회원 ID"),
                                 fieldWithPath("productId").description("상품 기반 채팅일 경우 상품 ID")
                         ),
@@ -136,9 +146,16 @@ class ChatIntegrationTest extends TestContainerConfig {
                 new JacksonJsonMessageConverter()
         )));
 
+        StompHeaders connectHeaders = new StompHeaders();
+        connectHeaders.add("Authorization", bearerToken(members.senderId()));
         StompSession stompSession = stompClient
-                .connectAsync("ws://localhost:" + port + "/api/ws-stomp", new StompSessionHandlerAdapter() {
-                })
+                .connectAsync(
+                        "ws://localhost:" + port + "/api/ws-stomp",
+                        new WebSocketHttpHeaders(),
+                        connectHeaders,
+                        new StompSessionHandlerAdapter() {
+                        }
+                )
                 .get(3, TimeUnit.SECONDS);
 
         BlockingQueue<ChatMessageResponseDto> messageEvents = new LinkedBlockingQueue<>();
@@ -149,7 +166,7 @@ class ChatIntegrationTest extends TestContainerConfig {
         try {
             stompSession.send(
                     "/pub/chat/rooms/" + roomId + "/messages",
-                    new ChatMessageWriteRequestDto(members.senderId(), "hello integration")
+                    new ChatMessageRequestDto("hello integration")
             );
 
             ChatMessageResponseDto sentMessage = pollMessage(messageEvents);
@@ -159,16 +176,13 @@ class ChatIntegrationTest extends TestContainerConfig {
             assertThat(sentMessage.unreadCount()).isEqualTo(1);
 
             mockMvc.perform(get("/api/v1/chat/messages/{roomId}", roomId)
-                            .param("memberId", members.senderId().toString()))
+                            .with(authenticatedMember(members.senderId())))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data[0].messageId").value(sentMessage.messageId()))
                     .andExpect(jsonPath("$.data[0].message").value("hello integration"))
                     .andDo(document("chat-message-list-success",
                             pathParameters(
                                     parameterWithName("roomId").description("메시지를 조회할 채팅방 ID")
-                            ),
-                            queryParameters(
-                                    parameterWithName("memberId").description("메시지 목록을 조회하는 회원 ID")
                             ),
                             responseFields(
                                     fieldWithPath("code").description("HTTP 상태 코드"),
@@ -186,7 +200,7 @@ class ChatIntegrationTest extends TestContainerConfig {
                     ));
 
             mockMvc.perform(get("/api/v1/chat/messages/{roomId}/search", roomId)
-                            .param("memberId", members.senderId().toString())
+                            .with(authenticatedMember(members.senderId()))
                             .param("keyword", "hello"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data[0].messageId").value(sentMessage.messageId()))
@@ -196,7 +210,6 @@ class ChatIntegrationTest extends TestContainerConfig {
                                     parameterWithName("roomId").description("메시지를 검색할 채팅방 ID")
                             ),
                             queryParameters(
-                                    parameterWithName("memberId").description("메시지를 검색하는 회원 ID"),
                                     parameterWithName("keyword").description("검색어"),
                                     parameterWithName("beforeMessageId").optional().description("이 메시지 ID보다 이전 메시지만 조회하는 커서"),
                                     parameterWithName("size").optional().description("검색 결과 개수. 기본값 30, 최대 100")
@@ -217,13 +230,10 @@ class ChatIntegrationTest extends TestContainerConfig {
                     ));
 
             mockMvc.perform(get("/api/v1/chat/rooms")
-                            .param("memberId", members.senderId().toString()))
+                            .with(authenticatedMember(members.senderId())))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data[0].roomId").value(roomId))
                     .andDo(document("chat-room-list-success",
-                            queryParameters(
-                                    parameterWithName("memberId").description("채팅방 목록을 조회하는 회원 ID")
-                            ),
                             responseFields(
                                     fieldWithPath("code").description("HTTP 상태 코드"),
                                     fieldWithPath("localDateTime").description("응답 시간"),
@@ -244,7 +254,6 @@ class ChatIntegrationTest extends TestContainerConfig {
                     .andExpect(jsonPath("$.data.created").value(false))
                     .andDo(document("chat-room-reenter-success",
                             requestFields(
-                                    fieldWithPath("memberId").description("채팅방에 입장하는 회원 ID"),
                                     fieldWithPath("targetMemberId").description("1대1 채팅 상대 회원 ID"),
                                     fieldWithPath("productId").description("상품 기반 채팅일 경우 상품 ID")
                             ),
@@ -259,20 +268,12 @@ class ChatIntegrationTest extends TestContainerConfig {
                     ));
 
             mockMvc.perform(post("/api/v1/chat/rooms/read/{roomId}", roomId)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                                    {
-                                      "memberId": %d
-                                    }
-                                    """.formatted(members.receiverId())))
+                            .with(authenticatedMember(members.receiverId())))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.readMessageCount").value(1))
                     .andDo(document("chat-room-read-success",
                             pathParameters(
                                     parameterWithName("roomId").description("읽음 처리할 채팅방 ID")
-                            ),
-                            requestFields(
-                                    fieldWithPath("memberId").description("읽음 처리 요청 회원 ID")
                             ),
                             responseFields(
                                     fieldWithPath("code").description("HTTP 상태 코드"),
@@ -285,18 +286,18 @@ class ChatIntegrationTest extends TestContainerConfig {
                     ));
 
             mockMvc.perform(get("/api/v1/chat/messages/{roomId}", roomId)
-                            .param("memberId", members.receiverId().toString()))
+                            .with(authenticatedMember(members.receiverId())))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data[0].unreadCount").value(0));
 
             mockMvc.perform(patch("/api/v1/chat/messages/{messageId}", sentMessage.messageId())
+                            .with(authenticatedMember(members.senderId()))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
-                                      "memberId": %d,
                                       "message": "edited integration"
                                     }
-                                    """.formatted(members.senderId())))
+                                    """))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.message").value("edited integration"))
                     .andExpect(jsonPath("$.data.edited").value(true))
@@ -305,7 +306,6 @@ class ChatIntegrationTest extends TestContainerConfig {
                                     parameterWithName("messageId").description("수정할 메시지 ID")
                             ),
                             requestFields(
-                                    fieldWithPath("memberId").description("메시지 수정 요청 회원 ID"),
                                     fieldWithPath("message").description("수정할 메시지 내용")
                             ),
                             responseFields(
@@ -329,21 +329,13 @@ class ChatIntegrationTest extends TestContainerConfig {
             assertThat(editedMessage.edited()).isTrue();
 
             mockMvc.perform(delete("/api/v1/chat/messages/{messageId}", sentMessage.messageId())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                                    {
-                                      "memberId": %d
-                                    }
-                                    """.formatted(members.senderId())))
+                            .with(authenticatedMember(members.senderId())))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.deleted").value(true))
                     .andExpect(jsonPath("$.data.message").value("삭제된 메시지입니다."))
                     .andDo(document("chat-message-delete-success",
                             pathParameters(
                                     parameterWithName("messageId").description("삭제할 메시지 ID")
-                            ),
-                            requestFields(
-                                    fieldWithPath("memberId").description("메시지 삭제 요청 회원 ID")
                             ),
                             responseFields(
                                     fieldWithPath("code").description("HTTP 상태 코드"),
@@ -370,6 +362,42 @@ class ChatIntegrationTest extends TestContainerConfig {
         }
     }
 
+    @Test
+    @DisplayName("[Integration] 참여자가 아닌 회원은 채팅방 WebSocket 메시지를 구독할 수 없다.")
+    void websocketSubscribe_deniesNonParticipant() throws Exception {
+        TestMembers members = saveMembers();
+        Long outsiderId = saveMember("outsider");
+        MvcResult enterResult = enterRoom(members, 100L)
+                .andExpect(status().isOk())
+                .andReturn();
+        Long roomId = readLong(enterResult, "$.data.roomId");
+
+        WebSocketStompClient stompClient = createStompClient();
+        StompSession outsiderSession = connectStompSession(stompClient, outsiderId);
+        StompSession senderSession = connectStompSession(stompClient, members.senderId());
+        BlockingQueue<ChatMessageResponseDto> outsiderEvents = new LinkedBlockingQueue<>();
+        BlockingQueue<ChatMessageResponseDto> senderEvents = new LinkedBlockingQueue<>();
+
+        try {
+            outsiderSession.subscribe("/sub/chat/rooms/" + roomId + "/messages", new ChatMessageFrameHandler(outsiderEvents));
+            senderSession.subscribe("/sub/chat/rooms/" + roomId + "/messages", new ChatMessageFrameHandler(senderEvents));
+            TimeUnit.MILLISECONDS.sleep(500);
+
+            senderSession.send(
+                    "/pub/chat/rooms/" + roomId + "/messages",
+                    new ChatMessageRequestDto("secret message")
+            );
+
+            ChatMessageResponseDto senderMessage = pollMessage(senderEvents);
+            assertThat(senderMessage.message()).isEqualTo("secret message");
+            assertThat(outsiderEvents.poll(1, TimeUnit.SECONDS)).isNull();
+        } finally {
+            disconnectIfConnected(outsiderSession);
+            disconnectIfConnected(senderSession);
+            stompClient.stop();
+        }
+    }
+
     private TestMembers saveMembers() {
         String suffix = UUID.randomUUID().toString().replace("-", "");
         return transactionTemplate.execute(_ -> {
@@ -378,6 +406,15 @@ class ChatIntegrationTest extends TestContainerConfig {
             entityManager.persist(sender);
             entityManager.persist(receiver);
             return new TestMembers(sender.getId(), receiver.getId());
+        });
+    }
+
+    private Long saveMember(String nickname) {
+        String suffix = UUID.randomUUID().toString().replace("-", "");
+        return transactionTemplate.execute(_ -> {
+            Member member = member("chat-it-" + nickname + "-" + suffix + "@test.com", nickname);
+            entityManager.persist(member);
+            return member.getId();
         });
     }
 
@@ -394,14 +431,66 @@ class ChatIntegrationTest extends TestContainerConfig {
 
     private org.springframework.test.web.servlet.ResultActions enterRoom(TestMembers members, Long productId) throws Exception {
         return mockMvc.perform(post("/api/v1/chat/rooms/enter")
+                .with(authenticatedMember(members.senderId()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
-                          "memberId": %d,
                           "targetMemberId": %d,
                           "productId": %d
                         }
-                        """.formatted(members.senderId(), members.receiverId(), productId)));
+                        """.formatted(members.receiverId(), productId)));
+    }
+
+    private WebSocketStompClient createStompClient() {
+        WebSocketStompClient stompClient = new WebSocketStompClient(new StandardWebSocketClient());
+        stompClient.setMessageConverter(new CompositeMessageConverter(List.of(
+                new ByteArrayMessageConverter(),
+                new StringMessageConverter(),
+                new JacksonJsonMessageConverter()
+        )));
+        return stompClient;
+    }
+
+    private StompSession connectStompSession(WebSocketStompClient stompClient, Long memberId) throws Exception {
+        StompHeaders connectHeaders = new StompHeaders();
+        connectHeaders.add("Authorization", bearerToken(memberId));
+        return stompClient
+                .connectAsync(
+                        "ws://localhost:" + port + "/api/ws-stomp",
+                        new WebSocketHttpHeaders(),
+                        connectHeaders,
+                        new StompSessionHandlerAdapter() {
+                        }
+                )
+                .get(3, TimeUnit.SECONDS);
+    }
+
+    private void disconnectIfConnected(StompSession stompSession) {
+        try {
+            if (stompSession.isConnected()) {
+                stompSession.disconnect();
+            }
+        } catch (IllegalStateException ignored) {
+        }
+    }
+
+    private static RequestPostProcessor authenticatedMember(Long memberId) {
+        return user(customUser(memberId));
+    }
+
+    private String bearerToken(Long memberId) {
+        CustomUser user = customUser(memberId);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(user, "", user.getAuthorities());
+        return "Bearer " + jwtTokenProvider.createToken(authentication).accessToken();
+    }
+
+    private static CustomUser customUser(Long memberId) {
+        return new CustomUser(
+                memberId,
+                "chat-user-" + memberId + "@test.com",
+                "",
+                List.of(new SimpleGrantedAuthority(MemberRole.MEMBER.toString()))
+        );
     }
 
     private Long readLong(MvcResult result, String expression) throws Exception {

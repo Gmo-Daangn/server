@@ -30,16 +30,16 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     // 채팅방 생성 또는 입장 처리
     @Override
     @Transactional
-    public ChatRoomEnterResponseDto enterDirectRoom(ChatRoomEnterRequestDto dto) {
-        if (dto.memberId().equals(dto.targetMemberId())) {
+    public ChatRoomEnterResponseDto enterDirectRoom(Long memberId, ChatRoomEnterRequestDto dto) {
+        if (memberId.equals(dto.targetMemberId())) {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "본인과의 채팅방은 만들 수 없습니다.");
         }
 
-        Member member = memberService.getByIdOrThrow(dto.memberId());
+        Member member = memberService.getByIdOrThrow(memberId);
         Member targetMember = memberService.getByIdOrThrow(dto.targetMemberId());
 
         List<ChatRoom> existingRooms = chatRoomRepository.findExistingDirectRoom(
-                dto.memberId(),
+                memberId,
                 dto.targetMemberId(),
                 dto.productId(),
                 ChatType.PRODUCT
@@ -63,14 +63,14 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     // 채팅방 메시지 읽음 처리
     @Override
     @Transactional
-    public ChatRoomReadResponseDto readDirectRoom(Long roomId, ChatRoomReadRequestDto dto) {
-        ChatParticipant participant = findParticipantByRoomIdAndMemberIdOrThrow(roomId, dto.memberId());
+    public ChatRoomReadResponseDto readDirectRoom(Long roomId, Long memberId) {
+        ChatParticipant participant = findParticipantByRoomIdAndMemberIdOrThrow(roomId, memberId);
         Long latestMessageId = chatMessageRepository.findLatestMessageIdByRoomId(roomId).orElse(null);
         long readMessageCount = participant.getUnreadCount();
 
         participant.markRead(latestMessageId);
 
-        return new ChatRoomReadResponseDto(roomId, dto.memberId(), readMessageCount);
+        return new ChatRoomReadResponseDto(roomId, memberId, readMessageCount);
     }
 
     private ChatRoomEnterResponseDto createRoom(Long productId, Member member, Member targetMember) {

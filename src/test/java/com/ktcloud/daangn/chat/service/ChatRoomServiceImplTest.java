@@ -41,10 +41,10 @@ class ChatRoomServiceImplTest extends TestContainerConfig {
         Long senderId = saveMember("a");
         Long receiverId = saveMember("b");
 
-        ChatRoomEnterRequestDto dto = new ChatRoomEnterRequestDto(senderId, receiverId, 100L);
+        ChatRoomEnterRequestDto dto = new ChatRoomEnterRequestDto(receiverId, 100L);
 
-        ChatRoomEnterResponseDto firstResponse = chatRoomService.enterDirectRoom(dto);
-        ChatRoomEnterResponseDto secondResponse = chatRoomService.enterDirectRoom(dto);
+        ChatRoomEnterResponseDto firstResponse = chatRoomService.enterDirectRoom(senderId, dto);
+        ChatRoomEnterResponseDto secondResponse = chatRoomService.enterDirectRoom(senderId, dto);
 
         assertThat(firstResponse.created()).isTrue();
         assertThat(secondResponse.created()).isFalse();
@@ -58,7 +58,8 @@ class ChatRoomServiceImplTest extends TestContainerConfig {
         Long receiverId = saveMember("b");
 
         ChatRoomEnterResponseDto room = chatRoomService.enterDirectRoom(
-                new ChatRoomEnterRequestDto(senderId, receiverId, 200L)
+                senderId,
+                new ChatRoomEnterRequestDto(receiverId, 200L)
         );
         chatMessageService.create(room.roomId(), senderId, "hello");
 
@@ -77,14 +78,15 @@ class ChatRoomServiceImplTest extends TestContainerConfig {
         Long receiverId = saveMember("b");
 
         ChatRoomEnterResponseDto room = chatRoomService.enterDirectRoom(
-                new ChatRoomEnterRequestDto(senderId, receiverId, 300L)
+                senderId,
+                new ChatRoomEnterRequestDto(receiverId, 300L)
         );
         chatMessageService.create(room.roomId(), senderId, "first");
         chatMessageService.create(room.roomId(), senderId, "second");
 
         ChatRoomReadResponseDto response = chatRoomService.readDirectRoom(
                 room.roomId(),
-                new ChatRoomReadRequestDto(receiverId)
+                receiverId
         );
 
         assertThat(response.roomId()).isEqualTo(room.roomId());
@@ -100,7 +102,8 @@ class ChatRoomServiceImplTest extends TestContainerConfig {
         Long memberId = saveMember("a");
 
         assertThatThrownBy(() -> chatRoomService.enterDirectRoom(
-                new ChatRoomEnterRequestDto(memberId, memberId, 100L)
+                memberId,
+                new ChatRoomEnterRequestDto(memberId, 100L)
         )).isInstanceOf(InvalidInputException.class)
                 .hasMessage("본인과의 채팅방은 만들 수 없습니다.");
     }
@@ -121,13 +124,14 @@ class ChatRoomServiceImplTest extends TestContainerConfig {
         Long outsiderId = saveMember("c");
 
         ChatRoomEnterResponseDto room = chatRoomService.enterDirectRoom(
-                new ChatRoomEnterRequestDto(senderId, receiverId, 300L)
+                senderId,
+                new ChatRoomEnterRequestDto(receiverId, 300L)
         );
         chatMessageService.create(room.roomId(), senderId, "first");
 
         assertThatThrownBy(() -> chatRoomService.readDirectRoom(
                 room.roomId(),
-                new ChatRoomReadRequestDto(outsiderId)
+                outsiderId
         )).isInstanceOf(InvalidInputException.class)
                 .hasMessage("채팅방 참여자가 아닙니다.");
     }
