@@ -1,5 +1,6 @@
 package com.ktcloud.daangn.notification.event;
 
+import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
@@ -59,8 +60,8 @@ class PaymentEventPublishingAspectTest {
                 .member(com.ktcloud.daangn.member.entity.Member.builder().id(SELLER_ID).build())
                 .title("title")
                 .content("content")
-                .price(AMOUNT.intValue())
-                .location("서울")
+                .price(AMOUNT)
+                .location(new Address("서울시", "강남구", "청담동"))
                 .build();
         ReflectionTestUtils.setField(post, "id", POST_ID);
     }

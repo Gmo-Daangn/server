@@ -1,5 +1,6 @@
 package com.ktcloud.daangn.notification.event;
 
+import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.chat.entity.ChatParticipant;
 import com.ktcloud.daangn.chat.entity.ChatRoom;
 import com.ktcloud.daangn.chat.entity.ChatType;
@@ -56,8 +57,8 @@ class PaymentNotificationContextResolverTest {
                 .member(seller)
                 .title("title")
                 .content("content")
-                .price(5_000)
-                .location("서울")
+                .price(5_000L)
+                .location(new Address("서울시", "강남구", "청담동"))
                 .build();
         ReflectionTestUtils.setField(post, "id", POST_ID);
 
