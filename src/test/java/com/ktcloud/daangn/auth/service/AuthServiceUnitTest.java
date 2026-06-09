@@ -3,7 +3,6 @@ package com.ktcloud.daangn.auth.service;
 import com.ktcloud.daangn.auth.dto.AuthSignupRequestDto;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.common.valueObject.Address;
-import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceUnitTest {
@@ -44,14 +42,8 @@ class AuthServiceUnitTest {
             //given
             AuthSignupRequestDto dto = new AuthSignupRequestDto("test@test.com", "이름", "password", address);
 
-            Member savedMember = Member.builder()
-                    .id(1L)
-                    .email(dto.email())
-                    .build();
-
             given(encoder.encode(any())).willReturn("encodePassword");
             //when
-            when(memberService.register(any())).thenReturn(savedMember);
             String message = authService.signup(dto);
 
             //then
