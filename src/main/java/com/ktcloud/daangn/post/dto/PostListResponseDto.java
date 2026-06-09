@@ -1,5 +1,6 @@
 package com.ktcloud.daangn.post.dto;
 
+import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.post.entity.Post;
 
 import java.time.LocalDateTime;
@@ -8,8 +9,8 @@ public record PostListResponseDto(
         Long postId,
         Long memberId,
         String title,
-        Integer price,
-        String location,
+        Long price,
+        Address location,
         Integer viewCount,
         LocalDateTime createdAt
 ) {

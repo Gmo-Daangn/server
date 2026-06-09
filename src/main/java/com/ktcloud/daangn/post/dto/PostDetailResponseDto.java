@@ -1,5 +1,6 @@
 package com.ktcloud.daangn.post.dto;
 
+import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.post.entity.Post;
 import com.ktcloud.daangn.post.entity.PostStatus;
 
@@ -11,8 +12,8 @@ public record PostDetailResponseDto(
         String sellerNickname,
         String title,
         String content,
-        Integer price,
-        String location,
+        Long price,
+        Address location,
         PostStatus status,
         Integer viewCount,
         LocalDateTime createdAt

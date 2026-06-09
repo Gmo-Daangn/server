@@ -11,6 +11,7 @@ import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
 import com.ktcloud.daangn.payment.repository.PaymentRepository;
 import com.ktcloud.daangn.post.entity.Post;
+import com.ktcloud.daangn.post.entity.PostStatus;
 import com.ktcloud.daangn.post.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -61,6 +62,7 @@ public class PaymentServiceImpl implements PaymentService {
         Post post = postService.getPostOrThrow(dto.postId());
 
         if (fromMemberId.equals(post.getMemberId())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다.");
+        if (post.getStatus().equals(PostStatus.SOLD)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 판매된 제품입니다.");
 
         Member targetMember = memberService.getByIdOrThrow(post.getMember().getId());
         Member fromMember = memberService.getByIdOrThrow(fromMemberId);
@@ -86,6 +88,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .tranSeqNo(dto.tranSeqNo())
                 .build();
 
+        post.markAsSold();
+
         paymentRepository.save(fromMemberHistory);
         paymentRepository.save(targetMemberHistory);
 
@@ -94,6 +98,10 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public String requestPayment(PaymentInitRequestDto dto) {
+        Post post = postService.getPostOrThrow(dto.postId());
+
+        if (post.getStatus().equals(PostStatus.SOLD)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 판매된 제품입니다.");
+
         UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
         //todo 추후 amount과 postId는 외부로 노출 하지않는 방향으로 변경 예정
         return tranSeqNo+"_"+dto.amount()+"_"+dto.postId();
