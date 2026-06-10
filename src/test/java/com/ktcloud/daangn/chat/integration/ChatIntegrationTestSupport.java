@@ -12,6 +12,7 @@ import com.ktcloud.daangn.member.entity.ProviderToken;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.MediaType;
 import org.springframework.messaging.converter.ByteArrayMessageConverter;
 import org.springframework.messaging.converter.CompositeMessageConverter;
@@ -66,9 +67,44 @@ abstract class ChatIntegrationTestSupport extends TestContainerConfig {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
-    @org.springframework.boot.test.web.server.LocalServerPort
+    @LocalServerPort
     private int port;
 
+    protected static RequestPostProcessor authenticatedMember(Long memberId) {
+        return user(customUser(memberId));
+    }
+
+    private static CustomUser customUser(Long memberId) {
+        return new CustomUser(
+                memberId,
+                "chat-user-" + memberId + "@test.com",
+                "",
+                List.of(new SimpleGrantedAuthority(MemberRole.MEMBER.toString()))
+        );
+    }
+
+    private static Long readLong(String json, String expression) {
+        Number number = JsonPath.read(json, expression);
+        return number.longValue();
+    }
+
+    private static ChatMessageResponseDto parseMessage(byte[] payload) {
+        String json = new String(payload, StandardCharsets.UTF_8);
+
+        // STOMP 클라이언트 컨버터 차이에 테스트가 흔들리지 않도록 body를 직접 파싱한다.
+        return new ChatMessageResponseDto(
+                readLong(json, "$.messageId"),
+                readLong(json, "$.roomId"),
+                readLong(json, "$.senderId"),
+                JsonPath.read(json, "$.message"),
+                JsonPath.read(json, "$.edited"),
+                JsonPath.read(json, "$.deleted"),
+                readLong(json, "$.unreadCount"),
+                LocalDateTime.parse(JsonPath.read(json, "$.createdAt"))
+        );
+    }
+
+    // junit5 기준 문제없는 코드, 혹시 빨간 에러가 떠도 컴파일 및 동작에 문제가 없음
     @BeforeEach
     void setUp(WebApplicationContext context, RestDocumentationContextProvider restDocumentation) {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(context)
@@ -153,23 +189,10 @@ abstract class ChatIntegrationTestSupport extends TestContainerConfig {
         }
     }
 
-    protected static RequestPostProcessor authenticatedMember(Long memberId) {
-        return user(customUser(memberId));
-    }
-
     private String bearerToken(Long memberId) {
         CustomUser user = customUser(memberId);
         Authentication authentication = new UsernamePasswordAuthenticationToken(user, "", user.getAuthorities());
         return "Bearer " + jwtTokenProvider.createToken(authentication).accessToken();
-    }
-
-    private static CustomUser customUser(Long memberId) {
-        return new CustomUser(
-                memberId,
-                "chat-user-" + memberId + "@test.com",
-                "",
-                List.of(new SimpleGrantedAuthority(MemberRole.MEMBER.toString()))
-        );
     }
 
     protected Long readLong(MvcResult result, String expression) throws Exception {
@@ -182,27 +205,6 @@ abstract class ChatIntegrationTestSupport extends TestContainerConfig {
         ChatMessageResponseDto message = messageEvents.poll(10, TimeUnit.SECONDS);
         assertThat(message).isNotNull();
         return message;
-    }
-
-    private static Long readLong(String json, String expression) {
-        Number number = JsonPath.read(json, expression);
-        return number.longValue();
-    }
-
-    private static ChatMessageResponseDto parseMessage(byte[] payload) {
-        String json = new String(payload, StandardCharsets.UTF_8);
-
-        // STOMP 클라이언트 컨버터 차이에 테스트가 흔들리지 않도록 body를 직접 파싱한다.
-        return new ChatMessageResponseDto(
-                readLong(json, "$.messageId"),
-                readLong(json, "$.roomId"),
-                readLong(json, "$.senderId"),
-                JsonPath.read(json, "$.message"),
-                JsonPath.read(json, "$.edited"),
-                JsonPath.read(json, "$.deleted"),
-                readLong(json, "$.unreadCount"),
-                LocalDateTime.parse(JsonPath.read(json, "$.createdAt"))
-        );
     }
 
     protected record TestMembers(
