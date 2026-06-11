@@ -449,10 +449,10 @@ public class PaymentServiceUnitExceptionTest {
 
             given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
             given(postService.getPostOrThrow(postId)).willReturn(targetPost);
-            given(memberService.getByIdOrThrow(fromMemberId)).willReturn(fromMember);
-            given(memberService.getByIdOrThrow(toMemberId)).willReturn(toMember);
+            given(memberService.getByIdOrThrowWithLock(fromMemberId)).willReturn(fromMember);
+            given(memberService.getByIdOrThrowWithLock(toMemberId)).willReturn(toMember);
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(fromMember.getId(), dto))
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, dto))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("잔액이 부족합니다.");
         }
