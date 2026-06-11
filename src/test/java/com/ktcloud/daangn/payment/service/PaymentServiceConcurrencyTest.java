@@ -115,7 +115,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE + POST_PRICE * buyUserCount);
 
             List<PaymentHistory> paymentHistoryList = em.createQuery("select p from PaymentHistory p where p.type = :type and p.member.id = :toMemberId", PaymentHistory.class)
-                    .setParameter("type", PaymentStatus.DEPOSIT.getMessage())
+                    .setParameter("type", PaymentStatus.DEPOSIT)
                     .setParameter("toMemberId", mainMemberId)
                     .getResultList();
 
@@ -181,7 +181,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE);
 
             List<PaymentHistory> paymentHistoryList = em.createQuery("select p from PaymentHistory p where p.type = :type and p.member.id = :toMemberId", PaymentHistory.class)
-                    .setParameter("type", PaymentStatus.WITHDRAWAL.getMessage())
+                    .setParameter("type", PaymentStatus.WITHDRAWAL)
                     .setParameter("toMemberId", mainMemberId)
                     .getResultList();
 
