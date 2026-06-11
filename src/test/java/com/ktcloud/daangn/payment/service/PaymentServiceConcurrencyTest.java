@@ -303,7 +303,6 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             ConcurrentLinkedQueue<Object> unexpectedErrors = new ConcurrentLinkedQueue<>();
 
             for (int i = 0; i < buyUserCount; i++) {
-                final int index = i;
                 executor.submit(() -> {
                     try {
                         startLatch.await();
