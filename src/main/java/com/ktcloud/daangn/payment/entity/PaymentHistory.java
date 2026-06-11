@@ -14,6 +14,13 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(
+        name = "payment_history",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_tran_type",
+                columnNames = {"tran_seq_no","type"}
+        )
+)
 public class PaymentHistory {
 
     @Id

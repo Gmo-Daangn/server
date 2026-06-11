@@ -12,6 +12,7 @@ import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -83,11 +84,12 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
         @DisplayName("[동시성] n명이 한명의 게시물 n건 구매시 판매자의 잔액 검증")
         public void confirmPayment_MultiBuyersSingleSeller_Success() throws Exception {
             //given
+            int buyUserCount = 100;
+
             List<Long> sellers = Collections.nCopies(100, mainMemberId);
             initPosts(sellers);
-            initCounterpartMembers();
+            initCounterpartMembers(buyUserCount);
 
-            int buyUserCount = 100;
             ExecutorService executor = Executors.newFixedThreadPool(buyUserCount);
             CountDownLatch startLatch = new CountDownLatch(1);
             CountDownLatch doneLatch = new CountDownLatch(buyUserCount);
@@ -150,11 +152,12 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
         @DisplayName("[동시성] 한명이 n명의 게시물 n건 구매시 구매자의 잔액 검증")
         public void confirmPayment_SingleBuyerMultiSellers_Success() throws Exception {
             //given
-            initCounterpartMembers();
+            int buyUserCount = 100;
+
+            initCounterpartMembers(buyUserCount);
             initPosts(counterpartMemberIds);
             settingMemberBalance();
 
-            int buyUserCount = 100;
             ExecutorService executor = Executors.newFixedThreadPool(buyUserCount);
             CountDownLatch startLatch = new CountDownLatch(1);
             CountDownLatch doneLatch = new CountDownLatch(buyUserCount);
@@ -221,10 +224,11 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
         @DisplayName("[동시성] 잔액 부족 시 1건만 성공하고 나머지는 잔액부족 예외 발생")
         public void confirmPayment_InsufficientBalance_PartialSuccess() throws Exception {
             //given
-            initCounterpartMembers();
+            int buyUserCount = 2;
+
+            initCounterpartMembers(buyUserCount);
             initPosts(counterpartMemberIds);
 
-            int buyUserCount = 2;
             ExecutorService executor = Executors.newFixedThreadPool(buyUserCount);
             CountDownLatch startLatch = new CountDownLatch(1);
             CountDownLatch doneLatch = new CountDownLatch(buyUserCount);
@@ -274,9 +278,81 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
         }
     }
 
-    private void initCounterpartMembers() {
+    @Nested
+    @DisplayName("동일 결제 링크 중복 결제 확인")
+    class SameBuyerWithSamePaymentToken {
+
+        private static final Long BUYER_INITIAL_BALANCE = 500_000L;
+
+        @Test
+        @DisplayName("[멱등성] 같은 거래 번호로 결제 진행시 중복 확인")
+        public void confirmPayment_DuplicateTokenIdempotency_PartialSuccess() throws Exception {
+            //given
+            int buyUserCount = 2;
+
+            settingMemberBalance();
+
+            initCounterpartMembers(buyUserCount);
+            initPosts(counterpartMemberIds);
+
+            ExecutorService executor = Executors.newFixedThreadPool(buyUserCount);
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(buyUserCount);
+            AtomicInteger successCount = new AtomicInteger();
+            AtomicInteger failCount = new AtomicInteger();
+            ConcurrentLinkedQueue<Object> unexpectedErrors = new ConcurrentLinkedQueue<>();
+
+            for (int i = 0; i < buyUserCount; i++) {
+                final int index = i;
+                executor.submit(() -> {
+                    try {
+                        startLatch.await();
+                        paymentService.confirmPayment(mainMemberId, new PaymentTokenDto("TXN_11" , POST_PRICE, postIds.get(1))); //동일한 tranSeqNo
+                        successCount.incrementAndGet();
+                    } catch (Exception e) {
+                        if (!(e instanceof DataIntegrityViolationException)) unexpectedErrors.add(e);
+                        failCount.incrementAndGet();
+                        System.out.println("e = " + e.getMessage());
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+            //when
+            startLatch.countDown(); //동시 실행 시작
+            doneLatch.await(); // 모든 작업 종료 대기
+            executor.shutdown(); //executor 종료
+            //then
+            assertThat(unexpectedErrors).isEmpty();
+            assertThat(successCount.get()).isEqualTo(1);
+            assertThat(failCount.get()).isEqualTo(1);
+
+            Member member = em.find(Member.class, mainMemberId);
+            assertThat(member.getBalance()).isEqualTo(BUYER_INITIAL_BALANCE);
+
+            List<PaymentHistory> paymentHistoryList = em.createQuery("select p from PaymentHistory p order by p.id asc", PaymentHistory.class)
+                    .getResultList();
+
+            assertThat(paymentHistoryList.size()).isEqualTo(2);
+
+            List<Post> soldPosts = em.createQuery("select p from Post p where p.status = :status", Post.class)
+                    .setParameter("status", PostStatus.SOLD)
+                    .getResultList();
+
+            assertThat(soldPosts).hasSize(1);
+        }
+
+        private void settingMemberBalance() {
+            runInTx(() -> {
+                Member member = em.find(Member.class, mainMemberId);
+                member.changeBalance(true, BUYER_INITIAL_BALANCE);
+            });
+        }
+    }
+
+    private void initCounterpartMembers(int userCount) {
         runInTx(() -> {
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < userCount; i++) {
                 Member member = Member.builder()
                         .email("test" + i + "@test.com")
                         .nickName(INITIAL_NAME)

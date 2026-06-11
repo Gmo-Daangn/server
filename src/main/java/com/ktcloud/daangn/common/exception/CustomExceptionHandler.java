@@ -3,6 +3,7 @@ package com.ktcloud.daangn.common.exception;
 import com.ktcloud.daangn.common.ResultCode;
 import com.ktcloud.daangn.common.dto.BaseResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -34,6 +35,19 @@ public class CustomExceptionHandler {
         return ResponseEntity
                 .status(ResultCode.VALIDATION_FAILED.getStatusCode())
                 .body(new BaseResponse<>(ResultCode.VALIDATION_FAILED.getStatusCode(), LocalDateTime.now(), ResultCode.VALIDATION_FAILED.getMessage(), validationErrors));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    protected ResponseEntity<BaseResponse<String>> dataIntegrityViolationException(DataIntegrityViolationException e) {
+        String message = e.getMessage();
+
+        if(message != null && message.contains("uk_tran_type"))
+            return ResponseEntity.status(ResultCode.BAD_REQUEST.getStatusCode())
+                    .body(BaseResponse.fail(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.", null));
+
+        return ResponseEntity
+                .status(ResultCode.BAD_REQUEST.getStatusCode())
+                .body(BaseResponse.fail(HttpStatus.BAD_REQUEST.value(), "잘못된 요청입니다.", null));
     }
 
     /// 매개변수 값이 올바르게 처리 되지 않았을때 에러처리
