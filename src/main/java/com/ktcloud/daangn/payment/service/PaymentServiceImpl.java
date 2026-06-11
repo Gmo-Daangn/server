@@ -9,6 +9,7 @@ import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
 import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
+import com.ktcloud.daangn.payment.entity.PaymentStatus;
 import com.ktcloud.daangn.payment.repository.PaymentRepository;
 import com.ktcloud.daangn.post.entity.Post;
 import com.ktcloud.daangn.post.entity.PostStatus;
@@ -64,14 +65,14 @@ public class PaymentServiceImpl implements PaymentService {
         if (fromMemberId.equals(post.getMemberId())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다.");
         if (post.getStatus().equals(PostStatus.SOLD)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 판매된 제품입니다.");
 
-        Member targetMember = memberService.getByIdOrThrow(post.getMember().getId());
-        Member fromMember = memberService.getByIdOrThrow(fromMemberId);
+        Member targetMember = memberService.getByIdOrThrowWithLock(post.getMember().getId());
+        Member fromMember = memberService.getByIdOrThrowWithLock(fromMemberId);
 
         fromMember.changeBalance(false, dto.amount());
         targetMember.changeBalance(true, dto.amount());
 
         PaymentHistory fromMemberHistory = PaymentHistory.builder()
-                .type("출금")
+                .type(PaymentStatus.WITHDRAWAL)
                 .localDateTime(LocalDateTime.now())
                 .member(fromMember)
                 .balance(fromMember.getBalance())
@@ -80,7 +81,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         PaymentHistory targetMemberHistory = PaymentHistory.builder()
-                .type("입금")
+                .type(PaymentStatus.DEPOSIT)
                 .localDateTime(LocalDateTime.now())
                 .member(targetMember)
                 .balance(targetMember.getBalance())

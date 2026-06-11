@@ -16,7 +16,7 @@ public record PaymentRequestDto(
                 .member(member)
                 .tranSeqNo(tran_seq_no)
                 .changedCash(tran_amt)
-                .type(add ? PaymentStatus.DEPOSIT.getMessage() : PaymentStatus.WITHDRAWAL.getMessage())
+                .type(add ? PaymentStatus.DEPOSIT : PaymentStatus.WITHDRAWAL)
                 .balance(member.getBalance())
                 .localDateTime(LocalDateTime.now())
                 .build();
