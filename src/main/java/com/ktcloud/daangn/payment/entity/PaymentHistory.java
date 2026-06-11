@@ -26,7 +26,8 @@ public class PaymentHistory {
 
     private String tranSeqNo;
 
-    private String type;
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus type;
 
     private Long changedCash;
 
