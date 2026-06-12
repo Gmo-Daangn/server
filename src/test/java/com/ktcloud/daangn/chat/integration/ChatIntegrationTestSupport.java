@@ -10,6 +10,7 @@ import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.entity.MemberRole;
 import com.ktcloud.daangn.member.entity.ProviderToken;
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -40,7 +41,9 @@ import org.springframework.web.socket.messaging.WebSocketStompClient;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -69,6 +72,8 @@ abstract class ChatIntegrationTestSupport extends TestContainerConfig {
 
     @LocalServerPort
     private int port;
+
+    private final List<Long> createdMemberIds = new ArrayList<>();
 
     protected static RequestPostProcessor authenticatedMember(Long memberId) {
         return user(customUser(memberId));
@@ -113,24 +118,96 @@ abstract class ChatIntegrationTestSupport extends TestContainerConfig {
                 .build();
     }
 
+    @AfterEach
+    void cleanUp() {
+        if (createdMemberIds.isEmpty()) {
+            return;
+        }
+
+        List<Long> memberIds = createdMemberIds.stream()
+                .distinct()
+                .toList();
+
+        transactionTemplate.executeWithoutResult(_ -> {
+            List<Long> roomIds = entityManager.createQuery("""
+                            select distinct participant.chatRoom.id
+                            from ChatParticipant participant
+                            where participant.member.id in :memberIds
+                            """, Long.class)
+                    .setParameter("memberIds", memberIds)
+                    .getResultList();
+
+            if (!roomIds.isEmpty()) {
+                entityManager.createQuery("""
+                                delete from ChatMessage message
+                                where message.chatRoom.id in :roomIds
+                                """)
+                        .setParameter("roomIds", roomIds)
+                        .executeUpdate();
+
+                entityManager.createQuery("""
+                                delete from ChatParticipant participant
+                                where participant.chatRoom.id in :roomIds
+                                """)
+                        .setParameter("roomIds", roomIds)
+                        .executeUpdate();
+
+                entityManager.createQuery("""
+                                delete from ChatRoom room
+                                where room.id in :roomIds
+                                """)
+                        .setParameter("roomIds", roomIds)
+                        .executeUpdate();
+            }
+
+            entityManager.createQuery("""
+                            delete from Notification notification
+                            where notification.receiver.id in :memberIds
+                            """)
+                    .setParameter("memberIds", memberIds)
+                    .executeUpdate();
+
+            entityManager.createQuery("""
+                            delete from Member member
+                            where member.id in :memberIds
+                            """)
+                    .setParameter("memberIds", memberIds)
+                    .executeUpdate();
+
+            entityManager.flush();
+            entityManager.clear();
+        });
+
+        createdMemberIds.clear();
+    }
+
     protected TestMembers saveMembers() {
         String suffix = UUID.randomUUID().toString().replace("-", "");
-        return transactionTemplate.execute(_ -> {
+        TestMembers members = Objects.requireNonNull(transactionTemplate.execute(_ -> {
             Member sender = member("chat-it-sender-" + suffix + "@test.com", "sender");
             Member receiver = member("chat-it-receiver-" + suffix + "@test.com", "receiver");
             entityManager.persist(sender);
             entityManager.persist(receiver);
             return new TestMembers(sender.getId(), receiver.getId());
-        });
+        }));
+
+        createdMemberIds.add(members.senderId());
+        createdMemberIds.add(members.receiverId());
+
+        return members;
     }
 
     protected Long saveMember(String nickname) {
         String suffix = UUID.randomUUID().toString().replace("-", "");
-        return transactionTemplate.execute(_ -> {
+        Long memberId = Objects.requireNonNull(transactionTemplate.execute(_ -> {
             Member member = member("chat-it-" + nickname + "-" + suffix + "@test.com", nickname);
             entityManager.persist(member);
             return member.getId();
-        });
+        }));
+
+        createdMemberIds.add(memberId);
+
+        return memberId;
     }
 
     private Member member(String email, String nickname) {

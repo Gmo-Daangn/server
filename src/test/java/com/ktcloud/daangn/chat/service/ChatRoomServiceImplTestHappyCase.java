@@ -61,6 +61,27 @@ class ChatRoomServiceImplTestHappyCase extends ChatServiceTestSupport {
         }
 
         @Test
+        @DisplayName("[HAPPY] 1대1 채팅방 목록에는 다중 채팅방이 포함되지 않는다.")
+        void findDirectRooms_excludesMultiRoom() {
+            Long senderId = saveMember("a");
+            Long receiverId = saveMember("b");
+            Long anotherMemberId = saveMember("c");
+
+            ChatRoomEnterResponseDto directRoom = chatRoomService.enterDirectRoom(
+                    senderId,
+                    new ChatRoomEnterRequestDto(receiverId, 200L)
+            );
+            Long multiRoomId = createMultiRoom(senderId, receiverId, anotherMemberId);
+
+            List<ChatRoomListResponseDto> rooms = chatRoomService.findDirectRooms(senderId);
+
+            assertThat(rooms)
+                    .extracting(ChatRoomListResponseDto::roomId)
+                    .containsExactly(directRoom.roomId())
+                    .doesNotContain(multiRoomId);
+        }
+
+        @Test
         @DisplayName("[HAPPY] 상대방 메시지를 읽으면 읽음 처리된다.")
         void readDirectRoom_marksUnreadMessagesAsRead() {
             Long senderId = saveMember("a");

@@ -82,7 +82,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     }
 
     private ChatParticipant findParticipantByRoomIdAndMemberIdOrThrow(Long roomId, Long memberId) {
-        return chatParticipantRepository.findByChatRoom_IdAndMember_Id(roomId, memberId)
+        return chatParticipantRepository.findByChatRoomIdAndMemberIdForUpdate(roomId, memberId)
                 .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "채팅방 참여자가 아닙니다."));
     }
 

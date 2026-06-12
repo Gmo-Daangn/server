@@ -36,7 +36,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     @Transactional
     public ChatMessageResponseDto create(Long roomId, Long memberId, String message) {
         ChatRoom chatRoom = findRoomByIdOrThrow(roomId);
-        List<ChatParticipant> participants = findParticipantsByRoomId(roomId);
+        List<ChatParticipant> participants = findParticipantsByRoomIdForUpdate(roomId);
         ChatParticipant senderParticipant = findParticipantOrThrow(participants, memberId);
         Member member = senderParticipant.getMember();
         long unreadCount = countReceivers(participants, memberId);
@@ -139,6 +139,10 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     private List<ChatParticipant> findParticipantsByRoomId(Long roomId) {
         return chatParticipantRepository.findByChatRoomIdWithMember(roomId);
+    }
+
+    private List<ChatParticipant> findParticipantsByRoomIdForUpdate(Long roomId) {
+        return chatParticipantRepository.findByChatRoomIdWithMemberForUpdate(roomId);
     }
 
     private ChatParticipant findParticipantOrThrow(List<ChatParticipant> participants, Long memberId) {

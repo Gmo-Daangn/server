@@ -54,6 +54,16 @@ abstract class ChatServiceTestSupport extends TestContainerConfig {
         return new TestChatRoom(room.getId(), member.getId(), null);
     }
 
+    protected Long createMultiRoom(Long... memberIds) {
+        ChatRoom room = chatRoomRepository.save(ChatRoom.createRoom(600L, ChatType.MULTI));
+        for (Long memberId : memberIds) {
+            Member member = memberService.getByIdOrThrow(memberId);
+            chatParticipantRepository.save(ChatParticipant.createParticipant(room, member));
+        }
+
+        return room.getId();
+    }
+
     protected Long saveMember(String nickname) {
         return saveMemberEntity(nickname).getId();
     }
