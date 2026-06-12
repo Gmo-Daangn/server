@@ -25,6 +25,12 @@ public class ChatRoom {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    private Long lastMessageId;
+
+    private String lastMessage;
+
+    private LocalDateTime lastMessageCreatedAt;
+
     @Builder
     public ChatRoom(Long productId, ChatType type) {
         this.productId = productId;
@@ -39,4 +45,13 @@ public class ChatRoom {
                 .build();
     }
 
+    public void updateLastMessage(ChatMessage chatMessage) {
+        this.lastMessageId = chatMessage.getId();
+        this.lastMessage = chatMessage.getMessage();
+        this.lastMessageCreatedAt = chatMessage.getCreatedAt();
+    }
+
+    public boolean isLastMessage(Long messageId) {
+        return this.lastMessageId != null && this.lastMessageId.equals(messageId);
+    }
 }

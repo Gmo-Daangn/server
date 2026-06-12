@@ -9,6 +9,8 @@ public interface ChatMessageService {
 
     List<ChatMessageResponseDto> list(Long roomId, Long memberId);
 
+    List<ChatMessageResponseDto> search(Long roomId, Long memberId, String keyword, Long beforeMessageId, int size);
+
     ChatMessageResponseDto edit(Long messageId, Long memberId, String message);
 
     ChatMessageResponseDto delete(Long messageId, Long memberId);
