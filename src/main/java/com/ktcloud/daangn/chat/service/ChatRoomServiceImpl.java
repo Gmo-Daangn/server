@@ -1,7 +1,6 @@
 package com.ktcloud.daangn.chat.service;
 
 import com.ktcloud.daangn.chat.dto.*;
-import com.ktcloud.daangn.chat.entity.ChatMessage;
 import com.ktcloud.daangn.chat.entity.ChatParticipant;
 import com.ktcloud.daangn.chat.entity.ChatRoom;
 import com.ktcloud.daangn.chat.entity.ChatType;
@@ -16,7 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -32,16 +30,16 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     // 채팅방 생성 또는 입장 처리
     @Override
     @Transactional
-    public ChatRoomEnterResponseDto enterDirectRoom(ChatRoomEnterRequestDto dto) {
-        if (dto.memberId().equals(dto.targetMemberId())) {
+    public ChatRoomEnterResponseDto enterDirectRoom(Long memberId, ChatRoomEnterRequestDto dto) {
+        if (memberId.equals(dto.targetMemberId())) {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "본인과의 채팅방은 만들 수 없습니다.");
         }
 
-        Member member = memberService.getByIdOrThrow(dto.memberId());
+        Member member = memberService.getByIdOrThrow(memberId);
         Member targetMember = memberService.getByIdOrThrow(dto.targetMemberId());
 
         List<ChatRoom> existingRooms = chatRoomRepository.findExistingDirectRoom(
-                dto.memberId(),
+                memberId,
                 dto.targetMemberId(),
                 dto.productId(),
                 ChatType.PRODUCT
@@ -55,36 +53,24 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         return createRoom(dto.productId(), member, targetMember);
     }
 
-    // 내가 참여한 채팅방 목록 조회
-    // TODO: N+1 성능 최적화 필요 - findDirectRooms에서 chatRoom 수 N에 비례해 3N+1 쿼리 발생.
-    //       toRoomListResponse 내 참여자 조회, 최근 메시지 조회, 미읽음 수 집계를
-    //       단일 배치 쿼리(JOIN FETCH / 집계 JPQL)로 교체 필요.
     @Override
     public List<ChatRoomListResponseDto> findDirectRooms(Long memberId) {
         memberService.getByIdOrThrow(memberId);
 
-        return chatParticipantRepository.findByMember_Id(memberId).stream()
-                .map(ChatParticipant::getChatRoom)
-                .distinct()
-                .sorted(Comparator.comparing(ChatRoom::getCreatedAt).reversed())
-                .map(chatRoom -> toRoomListResponse(chatRoom, memberId))
-                .toList();
+        return chatParticipantRepository.findDirectRoomListByMemberId(memberId);
     }
 
     // 채팅방 메시지 읽음 처리
     @Override
     @Transactional
-    public ChatRoomReadResponseDto readDirectRoom(Long roomId, ChatRoomReadRequestDto dto) {
-        findParticipantByRoomIdAndMemberIdOrThrow(roomId, dto.memberId());
+    public ChatRoomReadResponseDto readDirectRoom(Long roomId, Long memberId) {
+        ChatParticipant participant = findParticipantByRoomIdAndMemberIdOrThrow(roomId, memberId);
+        Long latestMessageId = chatMessageRepository.findLatestMessageIdByRoomId(roomId).orElse(null);
+        long readMessageCount = participant.getUnreadCount();
 
-        List<ChatMessage> unreadMessages = chatMessageRepository.findByChatRoom_IdOrderByIdAsc(roomId).stream()
-                .filter(message -> !message.getMember().getId().equals(dto.memberId()))
-                .filter(message -> message.getReadCount() > 0)
-                .toList();
+        participant.markRead(latestMessageId);
 
-        unreadMessages.forEach(ChatMessage::markRead);
-
-        return new ChatRoomReadResponseDto(roomId, dto.memberId(), (long) unreadMessages.size());
+        return new ChatRoomReadResponseDto(roomId, memberId, readMessageCount);
     }
 
     private ChatRoomEnterResponseDto createRoom(Long productId, Member member, Member targetMember) {
@@ -96,37 +82,8 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     }
 
     private ChatParticipant findParticipantByRoomIdAndMemberIdOrThrow(Long roomId, Long memberId) {
-        return chatParticipantRepository.findByChatRoom_IdAndMember_Id(roomId, memberId)
+        return chatParticipantRepository.findByChatRoomIdAndMemberIdForUpdate(roomId, memberId)
                 .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "채팅방 참여자가 아닙니다."));
     }
 
-    private ChatRoomListResponseDto toRoomListResponse(ChatRoom chatRoom, Long memberId) {
-        List<ChatParticipant> participants = chatParticipantRepository.findByChatRoom_Id(chatRoom.getId());
-        ChatParticipant participant = participants.stream()
-                .filter(item -> item.getMember().getId().equals(memberId))
-                .findFirst()
-                .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "채팅방 참여자가 아닙니다."));
-
-        ChatParticipant otherParticipant = participants.stream()
-                .filter(item -> !item.getMember().getId().equals(memberId))
-                .findFirst()
-                .orElse(participant);
-
-        ChatMessage lastMessage = chatMessageRepository.findTopByChatRoom_IdOrderByIdDesc(chatRoom.getId()).orElse(null);
-        long unreadMessageCount = calculateUnreadMessageCount(chatRoom.getId(), memberId);
-
-        return new ChatRoomListResponseDto(
-                chatRoom.getId(),
-                chatRoom.getProductId(),
-                otherParticipant.getMember().getId(),
-                otherParticipant.getMember().getNickName(),
-                lastMessage == null ? null : lastMessage.getMessage(),
-                lastMessage == null ? null : lastMessage.getCreatedAt(),
-                unreadMessageCount
-        );
-    }
-
-    private long calculateUnreadMessageCount(Long roomId, Long memberId) {
-        return chatMessageRepository.countByChatRoom_IdAndMember_IdNotAndReadCountGreaterThan(roomId, memberId, 0);
-    }
 }

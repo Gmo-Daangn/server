@@ -14,7 +14,7 @@ public record ChatMessageResponseDto(
         long unreadCount,
         LocalDateTime createdAt
 ) {
-    public static ChatMessageResponseDto from(ChatMessage chatMessage) {
+    public static ChatMessageResponseDto from(ChatMessage chatMessage, long unreadCount) {
         return new ChatMessageResponseDto(
                 chatMessage.getId(),
                 chatMessage.getChatRoom().getId(),
@@ -22,7 +22,7 @@ public record ChatMessageResponseDto(
                 chatMessage.getMessage(),
                 chatMessage.isEdited(),
                 chatMessage.isDeleted(),
-                chatMessage.getReadCount(),
+                unreadCount,
                 chatMessage.getCreatedAt()
         );
     }

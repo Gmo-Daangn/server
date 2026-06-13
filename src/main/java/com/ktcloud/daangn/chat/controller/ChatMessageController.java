@@ -1,13 +1,14 @@
 package com.ktcloud.daangn.chat.controller;
 
-import com.ktcloud.daangn.chat.dto.ChatMessageDeleteRequestDto;
+import com.ktcloud.daangn.auth.dto.CustomUser;
+import com.ktcloud.daangn.chat.dto.ChatMessageRequestDto;
 import com.ktcloud.daangn.chat.dto.ChatMessageResponseDto;
-import com.ktcloud.daangn.chat.dto.ChatMessageWriteRequestDto;
 import com.ktcloud.daangn.chat.service.ChatMessageService;
 import com.ktcloud.daangn.common.dto.BaseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,23 +22,34 @@ public class ChatMessageController {
     private final SimpMessagingTemplate messagingTemplate;
 
     // 채팅 메시지 목록 조회
-    // TODO: JWT 인증 도입 후 memberId를 `@RequestParam이` 아닌
-    //       SecurityContextHolder 또는 JWT 토큰에서 추출하도록 변경 필요 (보안 취약점)
     @GetMapping("/messages/{roomId}")
     public BaseResponse<List<ChatMessageResponseDto>> list(
             @PathVariable Long roomId,
-            @RequestParam Long memberId
+            @AuthenticationPrincipal CustomUser user
     ) {
-        return BaseResponse.success(chatMessageService.list(roomId, memberId));
+        return BaseResponse.success(chatMessageService.list(roomId, user.getMemberId()));
+    }
+
+    // 채팅방 메시지 검색
+    @GetMapping("/messages/{roomId}/search")
+    public BaseResponse<List<ChatMessageResponseDto>> search(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal CustomUser user,
+            @RequestParam String keyword,
+            @RequestParam(required = false) Long beforeMessageId,
+            @RequestParam(defaultValue = "30") int size
+    ) {
+        return BaseResponse.success(chatMessageService.search(roomId, user.getMemberId(), keyword, beforeMessageId, size));
     }
 
     // 채팅 메시지 수정
     @PatchMapping("/messages/{messageId}")
     public BaseResponse<ChatMessageResponseDto> edit(
             @PathVariable Long messageId,
-            @Valid @RequestBody ChatMessageWriteRequestDto dto
+            @AuthenticationPrincipal CustomUser user,
+            @Valid @RequestBody ChatMessageRequestDto dto
     ) {
-        ChatMessageResponseDto response = chatMessageService.edit(messageId, dto.memberId(), dto.message());
+        ChatMessageResponseDto response = chatMessageService.edit(messageId, user.getMemberId(), dto.message());
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + response.roomId() + "/messages", response);
 
         return BaseResponse.success(response);
@@ -47,9 +59,9 @@ public class ChatMessageController {
     @DeleteMapping("/messages/{messageId}")
     public BaseResponse<ChatMessageResponseDto> delete(
             @PathVariable Long messageId,
-            @Valid @RequestBody ChatMessageDeleteRequestDto dto
+            @AuthenticationPrincipal CustomUser user
     ) {
-        ChatMessageResponseDto response = chatMessageService.delete(messageId, dto.memberId());
+        ChatMessageResponseDto response = chatMessageService.delete(messageId, user.getMemberId());
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + response.roomId() + "/messages", response);
 
         return BaseResponse.success(response);

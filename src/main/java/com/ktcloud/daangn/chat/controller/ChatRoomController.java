@@ -1,11 +1,13 @@
 package com.ktcloud.daangn.chat.controller;
 
+import com.ktcloud.daangn.auth.dto.CustomUser;
 import com.ktcloud.daangn.chat.dto.*;
 import com.ktcloud.daangn.chat.service.ChatRoomService;
 import com.ktcloud.daangn.common.dto.BaseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,23 +22,26 @@ public class ChatRoomController {
 
     // 채팅방 생성 또는 입장 처리
     @PostMapping("/enter")
-    public BaseResponse<ChatRoomEnterResponseDto> enterDirectRoom(@Valid @RequestBody ChatRoomEnterRequestDto dto) {
-        return BaseResponse.success(chatRoomService.enterDirectRoom(dto));
+    public BaseResponse<ChatRoomEnterResponseDto> enterDirectRoom(
+            @AuthenticationPrincipal CustomUser user,
+            @Valid @RequestBody ChatRoomEnterRequestDto dto
+    ) {
+        return BaseResponse.success(chatRoomService.enterDirectRoom(user.getMemberId(), dto));
     }
 
     // 내가 참여한 채팅방 목록 조회
     @GetMapping
-    public BaseResponse<List<ChatRoomListResponseDto>> findDirectRooms(@RequestParam Long memberId) {
-        return BaseResponse.success(chatRoomService.findDirectRooms(memberId));
+    public BaseResponse<List<ChatRoomListResponseDto>> findDirectRooms(@AuthenticationPrincipal CustomUser user) {
+        return BaseResponse.success(chatRoomService.findDirectRooms(user.getMemberId()));
     }
 
     // 채팅방 읽음 처리
     @PostMapping("/read/{roomId}")
     public BaseResponse<ChatRoomReadResponseDto> readDirectRoom(
             @PathVariable Long roomId,
-            @Valid @RequestBody ChatRoomReadRequestDto dto
+            @AuthenticationPrincipal CustomUser user
     ) {
-        ChatRoomReadResponseDto response = chatRoomService.readDirectRoom(roomId, dto);
+        ChatRoomReadResponseDto response = chatRoomService.readDirectRoom(roomId, user.getMemberId());
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + roomId + "/read-status", response);
 
         return BaseResponse.success(response);
