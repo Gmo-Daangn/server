@@ -113,6 +113,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             doneLatch.await(); // 모든 작업 종료 대기
             executor.shutdown(); //executor 종료
             //then
+            em.clear();
             Member toMember = em.find(Member.class, mainMemberId);
             assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE + POST_PRICE * buyUserCount);
 
@@ -180,6 +181,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             doneLatch.await(); // 모든 작업 종료 대기
             executor.shutdown(); //executor 종료
             //then
+            em.clear();
             Member toMember = em.find(Member.class, mainMemberId);
             assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE);
 
@@ -262,6 +264,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             assertThat(successCount.get()).isEqualTo(1);
             assertThat(failCount.get()).isEqualTo(1);
 
+            em.clear();
             Member member = em.find(Member.class, mainMemberId);
             assertThat(member.getBalance()).isEqualTo(0L);
 
@@ -326,6 +329,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             assertThat(successCount.get()).isEqualTo(1);
             assertThat(failCount.get()).isEqualTo(1);
 
+            em.clear();
             Member member = em.find(Member.class, mainMemberId);
             assertThat(member.getBalance()).isEqualTo(BUYER_INITIAL_BALANCE);
 
