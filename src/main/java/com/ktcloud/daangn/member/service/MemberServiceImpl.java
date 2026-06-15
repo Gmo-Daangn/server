@@ -46,6 +46,6 @@ public class MemberServiceImpl implements MemberService{
     @Override
     public Member getByIdOrThrowWithLock(Long id) {
         return memberRepository.findByIdWithLock(id)
-                .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "존재하지 않은 ID입니다."));
+                .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "존재하지 않는 ID입니다."));
     }
 }
