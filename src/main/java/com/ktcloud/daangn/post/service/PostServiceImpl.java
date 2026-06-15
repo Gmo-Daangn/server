@@ -87,6 +87,12 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
     }
 
+    @Override
+    public Post getPostOrThrowWithLock(Long postId) {
+        return postRepository.findPostByIdWithLock(postId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
+    }
+
     private void validateOwner(Post post, Long memberId) {
         if (!post.isOwner(memberId)) {
             throw new IllegalArgumentException("게시글 작성자만 처리할 수 있습니다.");
