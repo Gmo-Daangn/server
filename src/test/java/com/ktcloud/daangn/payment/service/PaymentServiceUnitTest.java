@@ -170,7 +170,7 @@ class PaymentServiceUnitTest {
 
             given(memberService.getByIdOrThrowWithLock(fromMemberId)).willReturn(fromMember);
             given(memberService.getByIdOrThrowWithLock(toMemberId)).willReturn(toMember);
-            given(postService.getPostOrThrow(postId)).willReturn(targetPost);
+            given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
 
             //when
             PaymentResponseDto result = paymentService.confirmPayment(fromMember.getId(), dto);

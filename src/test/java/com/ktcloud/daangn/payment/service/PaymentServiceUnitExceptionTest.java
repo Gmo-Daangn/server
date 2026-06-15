@@ -346,7 +346,7 @@ public class PaymentServiceUnitExceptionTest {
             PaymentTokenDto dto = PaymentTokenDto.parse(url);
 
             given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
-            given(postService.getPostOrThrow(postId)).willThrow(new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
+            given(postService.getPostOrThrowWithLock(postId)).willThrow(new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(1L, dto))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -376,7 +376,7 @@ public class PaymentServiceUnitExceptionTest {
             PaymentTokenDto dto = PaymentTokenDto.parse(url);
 
             given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
-            given(postService.getPostOrThrow(postId)).willReturn(targetPost);
+            given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(fromMember.getId(), dto))
                     .isInstanceOf(InvalidInputException.class)
@@ -408,7 +408,7 @@ public class PaymentServiceUnitExceptionTest {
             PaymentTokenDto dto = PaymentTokenDto.parse(url);
 
             given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
-            given(postService.getPostOrThrow(postId)).willReturn(targetPost);
+            given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, dto))
                     .isInstanceOf(InvalidInputException.class)
@@ -448,7 +448,7 @@ public class PaymentServiceUnitExceptionTest {
             PaymentTokenDto dto = PaymentTokenDto.parse(url);
 
             given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
-            given(postService.getPostOrThrow(postId)).willReturn(targetPost);
+            given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             given(memberService.getByIdOrThrowWithLock(fromMemberId)).willReturn(fromMember);
             given(memberService.getByIdOrThrowWithLock(toMemberId)).willReturn(toMember);
             //when, then
