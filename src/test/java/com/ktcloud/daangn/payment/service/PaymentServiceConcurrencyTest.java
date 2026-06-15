@@ -180,7 +180,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             boolean completed = doneLatch.await(10, TimeUnit.SECONDS); // 모든 작업 종료 대기
             executor.shutdown(); //executor 종료
             //then
-            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심");
+            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심").isTrue();
             em.clear();
             Member toMember = em.find(Member.class, mainMemberId);
             assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE);
@@ -247,7 +247,8 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
                         paymentService.confirmPayment(mainMemberId, new PaymentTokenDto("TXN_" + formattedIndex, POST_PRICE, postIds.get(index)));
                         successCount.incrementAndGet();
                     } catch (Exception e) {
-                        if (!"잔액이 부족합니다.".equals(e.getMessage())) unexpectedErrors.add(e);
+                        boolean isExpected = e instanceof InvalidInputException && "잔액이 부족합니다.".equals(e.getMessage());
+                        if (!isExpected) unexpectedErrors.add(e);
                         failCount.incrementAndGet();
                         System.out.println("e = " + e.getMessage());
                     } finally {
@@ -260,8 +261,10 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             boolean completed = doneLatch.await(10, TimeUnit.SECONDS); // 모든 작업 종료 대기
             executor.shutdown(); //executor 종료
             //then
-            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심");
-            assertThat(unexpectedErrors).isEmpty();
+            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심").isTrue();
+            assertThat(unexpectedErrors)
+                    .as("예상치 못한 예외 발생: " + unexpectedErrors)
+                    .isEmpty();
             assertThat(successCount.get()).isEqualTo(1);
             assertThat(failCount.get()).isEqualTo(1);
 
@@ -330,8 +333,10 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             boolean completed = doneLatch.await(10, TimeUnit.SECONDS); // 모든 작업 종료 대기
             executor.shutdown(); //executor 종료
             //then
-            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심");
-            assertThat(unexpectedErrors).isEmpty();
+            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심").isTrue();
+            assertThat(unexpectedErrors)
+                    .as("예상치 못한 예외 발생: " + unexpectedErrors)
+                    .isEmpty();
             assertThat(successCount.get()).isEqualTo(1);
             assertThat(failCount.get()).isEqualTo(1);
 
@@ -407,7 +412,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             executor.shutdown(); //executor 종료
 
             //then
-            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심");
+            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심").isTrue();
             em.clear();
             Member memberA = em.find(Member.class, memberAId);
             Member memberB = em.find(Member.class, memberBId);
@@ -463,7 +468,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             executor.shutdown(); //executor 종료
 
             //then
-            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심");
+            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심").isTrue();
             em.clear();
             List<Post> soldPosts = em.createQuery("select p from Post p where p.status = :status", Post.class)
                     .setParameter("status", PostStatus.SOLD)
