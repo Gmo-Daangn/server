@@ -16,6 +16,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.net.BindException;
 import java.security.SignatureException;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -39,9 +40,9 @@ public class CustomExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     protected ResponseEntity<BaseResponse<String>> dataIntegrityViolationException(DataIntegrityViolationException e) {
-        String message = e.getMessage();
+        Throwable cause = e.getCause();
 
-        if(message != null && message.contains("uk_tran_type"))
+        if (cause instanceof SQLException sqlEx && "23000".equals(sqlEx.getSQLState()))
             return ResponseEntity.status(ResultCode.BAD_REQUEST.getStatusCode())
                     .body(BaseResponse.fail(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.", null));
 
