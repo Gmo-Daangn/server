@@ -61,12 +61,19 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentResponseDto confirmPayment(Long fromMemberId, PaymentTokenDto dto) {
         if (paymentRepository.existsByTranSeqNo(dto.tranSeqNo())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
         Post post = postService.getPostOrThrow(dto.postId());
+        Long targetMemberId = post.getMemberId();
 
-        if (fromMemberId.equals(post.getMemberId())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다.");
+        if (fromMemberId.equals(targetMemberId)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다.");
         if (post.getStatus().equals(PostStatus.SOLD)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 판매된 제품입니다.");
 
-        Member targetMember = memberService.getByIdOrThrowWithLock(post.getMember().getId());
-        Member fromMember = memberService.getByIdOrThrowWithLock(fromMemberId);
+        Member fromMember, targetMember;
+        if (fromMemberId < targetMemberId) {
+            fromMember = memberService.getByIdOrThrowWithLock(fromMemberId);
+            targetMember = memberService.getByIdOrThrowWithLock(targetMemberId);
+        } else {
+            targetMember = memberService.getByIdOrThrowWithLock(targetMemberId);
+            fromMember = memberService.getByIdOrThrowWithLock(fromMemberId);
+        }
 
         fromMember.changeBalance(false, dto.amount());
         targetMember.changeBalance(true, dto.amount());

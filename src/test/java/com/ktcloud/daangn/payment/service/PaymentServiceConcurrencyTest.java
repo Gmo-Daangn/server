@@ -353,6 +353,73 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
         }
     }
 
+    @Nested
+    @DisplayName("상호 결제 시 데드락 검증")
+    class MutualPaymentBetweenTwoMembers {
+
+        @Test
+        @DisplayName("[동시성] A와 B가 서로의 게시물을 동시 결제 시 데드락 없이 정상 처리")
+        public void confirmPayment_MutualPayment_NoDeadlock() throws Exception {
+            //given
+            int buyUserCount = 1;
+
+            initCounterpartMembers(buyUserCount);
+            Long memberAId = mainMemberId;
+            Long memberBId = counterpartMemberIds.getFirst();
+
+            initPosts(List.of(memberAId,memberBId));
+            Long postA = postIds.getFirst();
+            Long postB = postIds.getLast();
+
+            ExecutorService executor = Executors.newFixedThreadPool(2);
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(2);
+
+            executor.submit(() -> { //A -> B
+                try {
+                    startLatch.await();
+                    paymentService.confirmPayment(memberAId, new PaymentTokenDto("TXN_A_TO_B" , POST_PRICE, postB));
+                } catch (Exception e) {
+                    System.out.println("e = " + e.getMessage());
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+
+            executor.submit(() -> { // B -> A
+                try {
+                    startLatch.await();
+                    paymentService.confirmPayment(memberBId, new PaymentTokenDto("TXN_B_TO_A" , POST_PRICE, postA));
+                } catch (Exception e) {
+                    System.out.println("e = " + e.getMessage());
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+
+            //when
+            startLatch.countDown(); //동시 실행 시작
+            doneLatch.await(); // 모든 작업 종료 대기
+            executor.shutdown(); //executor 종료
+
+            //then
+            em.clear();
+            Member memberA = em.find(Member.class, memberAId);
+            Member memberB = em.find(Member.class, memberBId);
+
+            assertThat(memberA.getBalance()).isEqualTo(INITIAL_BALANCE);
+            assertThat(memberB.getBalance()).isEqualTo(INITIAL_BALANCE);
+
+            List<PaymentHistory> histories = em.createQuery("select p from PaymentHistory p", PaymentHistory.class).getResultList();
+            assertThat(histories).hasSize(4);
+
+            List<Post> soldPosts = em.createQuery("select p from Post p where p.status = :status", Post.class)
+                    .setParameter("status", PostStatus.SOLD)
+                    .getResultList();
+            assertThat(soldPosts).hasSize(2);
+        }
+    }
+
     private void initCounterpartMembers(int userCount) {
         runInTx(() -> {
             for (int i = 0; i < userCount; i++) {
@@ -377,7 +444,6 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
                 Member seller = em.find(Member.class, sellerId);
                 Post targetPost = new Post(seller, "제목", "내용", POST_PRICE, ADDRESS);
                 em.persist(targetPost);
-                System.out.println("targetPost.getId() = " + targetPost.getId());
                 postIds.add(targetPost.getId());
             }
             em.flush();
