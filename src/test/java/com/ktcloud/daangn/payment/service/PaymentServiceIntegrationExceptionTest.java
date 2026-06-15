@@ -149,7 +149,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
                     .member(member)
                     .tranSeqNo(dto.tran_seq_no())
                     .changedCash(dto.tran_amt())
-                    .type(PaymentStatus.DEPOSIT)
+                    .type(PaymentStatus.WITHDRAWAL)
                     .balance(member.getBalance())
                     .localDateTime(LocalDateTime.now())
                     .build();

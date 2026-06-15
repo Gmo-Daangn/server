@@ -2,7 +2,6 @@ package com.ktcloud.daangn.payment.entity;
 
 import com.ktcloud.daangn.member.entity.Member;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,23 +27,23 @@ public class PaymentHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @JoinColumn(name = "member_id")
+    @JoinColumn(name = "member_id",nullable = false)
     @ManyToOne(fetch = FetchType.LAZY)
     private Member member;
 
-    @NotNull
+    @Column(nullable = false)
     private String tranSeqNo;
 
-    @NotNull
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private PaymentStatus type;
 
-    @NotNull
+    @Column(nullable = false)
     private Long changedCash;
 
-    @NotNull
+    @Column(nullable = false)
     private Long balance;
 
-    @NotNull
+    @Column(nullable = false)
     private LocalDateTime localDateTime;
 }

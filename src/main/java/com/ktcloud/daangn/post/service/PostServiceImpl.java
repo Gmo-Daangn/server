@@ -88,6 +88,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional
     public Post getPostOrThrowWithLock(Long postId) {
         return postRepository.findPostByIdWithLock(postId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
