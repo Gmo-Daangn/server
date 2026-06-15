@@ -60,7 +60,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentResponseDto confirmPayment(Long fromMemberId, PaymentTokenDto dto) {
         if (paymentRepository.existsByTranSeqNo(dto.tranSeqNo())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
-        Post post = postService.getPostOrThrow(dto.postId());
+        Post post = postService.getPostOrThrowWithLock(dto.postId());
         Long targetMemberId = post.getMemberId();
 
         if (fromMemberId.equals(targetMemberId)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다.");

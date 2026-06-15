@@ -9,6 +9,7 @@ import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
+import com.ktcloud.daangn.payment.entity.PaymentStatus;
 import com.ktcloud.daangn.post.entity.Post;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -72,6 +75,9 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
                     .member(member)
                     .tranSeqNo(dto.tran_seq_no())
                     .changedCash(dto.tran_amt())
+                    .type(PaymentStatus.DEPOSIT)
+                    .balance(member.getBalance())
+                    .localDateTime(LocalDateTime.now())
                     .build();
             em.persist(paymentHistory);
             em.flush();
@@ -143,6 +149,9 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
                     .member(member)
                     .tranSeqNo(dto.tran_seq_no())
                     .changedCash(dto.tran_amt())
+                    .type(PaymentStatus.DEPOSIT)
+                    .balance(member.getBalance())
+                    .localDateTime(LocalDateTime.now())
                     .build();
             em.persist(paymentHistory);
             em.flush();
@@ -260,6 +269,9 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
                     .member(member)
                     .tranSeqNo(dto.tranSeqNo())
                     .changedCash(dto.amount())
+                    .type(PaymentStatus.DEPOSIT)
+                    .balance(member.getBalance())
+                    .localDateTime(LocalDateTime.now())
                     .build();
             em.persist(paymentHistory);
             em.flush();

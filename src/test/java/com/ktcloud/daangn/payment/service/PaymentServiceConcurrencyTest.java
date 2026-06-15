@@ -1,5 +1,6 @@
 package com.ktcloud.daangn.payment.service;
 
+import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.config.TestContainerConfig;
 import com.ktcloud.daangn.member.entity.Member;
@@ -122,7 +123,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
                     .setParameter("toMemberId", mainMemberId)
                     .getResultList();
 
-            assertThat(paymentHistoryList.size()).isEqualTo(buyUserCount);
+            assertThat(paymentHistoryList).hasSize(buyUserCount);
             Long totalAmount = 0L;
 
             for (PaymentHistory paymentHistory : paymentHistoryList) {
@@ -135,7 +136,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
                     .setParameter("status", PostStatus.SOLD)
                     .getResultList();
 
-            assertThat(statusList.size()).isEqualTo(buyUserCount);
+            assertThat(statusList).hasSize(buyUserCount);
         }
     }
 
@@ -190,7 +191,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
                     .setParameter("toMemberId", mainMemberId)
                     .getResultList();
 
-            assertThat(paymentHistoryList.size()).isEqualTo(buyUserCount);
+            assertThat(paymentHistoryList).hasSize(buyUserCount);
             Long totalAmount = 0L;
 
             for (PaymentHistory paymentHistory : paymentHistoryList) {
@@ -203,7 +204,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
                     .setParameter("status", PostStatus.SOLD)
                     .getResultList();
 
-            assertThat(statusList.size()).isEqualTo(buyUserCount);
+            assertThat(statusList).hasSize(buyUserCount);
         }
 
         private void settingMemberBalance() {
@@ -271,7 +272,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             List<PaymentHistory> paymentHistoryList = em.createQuery("select p from PaymentHistory p order by p.id asc", PaymentHistory.class)
                     .getResultList();
 
-            assertThat(paymentHistoryList.size()).isEqualTo(2);
+            assertThat(paymentHistoryList).hasSize(2);
 
             List<Post> soldPosts = em.createQuery("select p from Post p where p.status = :status", Post.class)
                     .setParameter("status", PostStatus.SOLD)
@@ -312,7 +313,11 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
                         paymentService.confirmPayment(mainMemberId, new PaymentTokenDto("TXN_11" , POST_PRICE, postIds.get(1))); //동일한 tranSeqNo
                         successCount.incrementAndGet();
                     } catch (Exception e) {
-                        if (!(e instanceof DataIntegrityViolationException)) unexpectedErrors.add(e);
+                        boolean isExpected = e instanceof DataIntegrityViolationException
+                                        || (e instanceof InvalidInputException &&
+                                        ("이미 진행된 거래입니다.".equals(e.getMessage()) || "이미 판매된 제품입니다.".equals(e.getMessage()))
+                        );
+                        if (!isExpected) unexpectedErrors.add(e);
                         failCount.incrementAndGet();
                         System.out.println("e = " + e.getMessage());
                     } finally {
@@ -331,17 +336,15 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
 
             em.clear();
             Member member = em.find(Member.class, mainMemberId);
-            assertThat(member.getBalance()).isEqualTo(BUYER_INITIAL_BALANCE);
+            assertThat(member.getBalance()).isEqualTo(BUYER_INITIAL_BALANCE); // 기존(INITIAL_BALANCE) + 추가 (BUYER_INITIAL_BALANCE) == 505_000L 따라서 결제 후 잔고 : 500_000L
 
             List<PaymentHistory> paymentHistoryList = em.createQuery("select p from PaymentHistory p order by p.id asc", PaymentHistory.class)
                     .getResultList();
-
-            assertThat(paymentHistoryList.size()).isEqualTo(2);
+            assertThat(paymentHistoryList).hasSize(2);
 
             List<Post> soldPosts = em.createQuery("select p from Post p where p.status = :status", Post.class)
                     .setParameter("status", PostStatus.SOLD)
                     .getResultList();
-
             assertThat(soldPosts).hasSize(1);
         }
 
@@ -417,6 +420,66 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
                     .setParameter("status", PostStatus.SOLD)
                     .getResultList();
             assertThat(soldPosts).hasSize(2);
+        }
+    }
+
+    @Nested
+    @DisplayName("동일 게시물 동시 결제 시 이중 판매 방지")
+    class PreventDoubleSaleOnSamePost {
+
+        @Test
+        @DisplayName("[동시성] 두 명이 같은 게시물을 동시 결제 시 1명만 성공")
+        public void confirmPayment_DoubleSaleOnSamePost_OnlyOneSucceeds() throws Exception {
+            //given
+            int buyUserCount = 2;
+            initCounterpartMembers(buyUserCount);
+
+            initPosts(List.of(mainMemberId));
+            Long sharedPostId = postIds.getFirst();
+
+            ExecutorService executor = Executors.newFixedThreadPool(buyUserCount);
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(buyUserCount);
+
+            for (int i = 0; i < buyUserCount; i++) {
+                final int index = i;
+                String formattedIndex = String.format("%02d", index);
+                executor.submit(() -> {
+                    try {
+                        startLatch.await();
+                        paymentService.confirmPayment(counterpartMemberIds.get(index), new PaymentTokenDto("TXN_" + formattedIndex, POST_PRICE, sharedPostId));
+                    } catch (Exception e) {
+                        System.out.println("e = " + e.getMessage());
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+            //when
+            startLatch.countDown();
+            doneLatch.await();
+            executor.shutdown();
+
+            //then
+            em.clear();
+            List<Post> soldPosts = em.createQuery("select p from Post p where p.status = :status", Post.class)
+                    .setParameter("status", PostStatus.SOLD)
+                    .getResultList();
+            assertThat(soldPosts).hasSize(1);
+
+            Member seller = em.find(Member.class, mainMemberId);
+            assertThat(seller.getBalance()).isEqualTo(INITIAL_BALANCE + POST_PRICE);
+
+            Member buyer1 = em.find(Member.class, counterpartMemberIds.getFirst());
+            Member buyer2 = em.find(Member.class, counterpartMemberIds.getLast());
+
+            assertThat((buyer1.getBalance().equals(INITIAL_BALANCE - POST_PRICE) && buyer2.getBalance().equals(INITIAL_BALANCE)) ||
+                    (buyer2.getBalance().equals(INITIAL_BALANCE - POST_PRICE) && buyer1.getBalance().equals(INITIAL_BALANCE))
+            ).isTrue();
+
+            List<PaymentHistory> histories = em.createQuery("select p from PaymentHistory p", PaymentHistory.class)
+                    .getResultList();
+            assertThat(histories).hasSize(2);
         }
     }
 
