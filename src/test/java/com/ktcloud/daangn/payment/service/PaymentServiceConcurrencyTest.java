@@ -22,10 +22,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -111,9 +108,10 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             }
             //when
             startLatch.countDown(); //동시 실행 시작
-            doneLatch.await(); // 모든 작업 종료 대기
+            boolean completed = doneLatch.await(10, TimeUnit.SECONDS); // 모든 작업 종료 대기
             executor.shutdown(); //executor 종료
             //then
+            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심").isTrue();
             em.clear();
             Member toMember = em.find(Member.class, mainMemberId);
             assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE + POST_PRICE * buyUserCount);
@@ -179,9 +177,10 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             }
             //when
             startLatch.countDown(); //동시 실행 시작
-            doneLatch.await(); // 모든 작업 종료 대기
+            boolean completed = doneLatch.await(10, TimeUnit.SECONDS); // 모든 작업 종료 대기
             executor.shutdown(); //executor 종료
             //then
+            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심");
             em.clear();
             Member toMember = em.find(Member.class, mainMemberId);
             assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE);
@@ -258,9 +257,10 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             }
             //when
             startLatch.countDown(); //동시 실행 시작
-            doneLatch.await(); // 모든 작업 종료 대기
+            boolean completed = doneLatch.await(10, TimeUnit.SECONDS); // 모든 작업 종료 대기
             executor.shutdown(); //executor 종료
             //then
+            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심");
             assertThat(unexpectedErrors).isEmpty();
             assertThat(successCount.get()).isEqualTo(1);
             assertThat(failCount.get()).isEqualTo(1);
@@ -327,9 +327,10 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             }
             //when
             startLatch.countDown(); //동시 실행 시작
-            doneLatch.await(); // 모든 작업 종료 대기
+            boolean completed = doneLatch.await(10, TimeUnit.SECONDS); // 모든 작업 종료 대기
             executor.shutdown(); //executor 종료
             //then
+            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심");
             assertThat(unexpectedErrors).isEmpty();
             assertThat(successCount.get()).isEqualTo(1);
             assertThat(failCount.get()).isEqualTo(1);
@@ -402,10 +403,11 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
 
             //when
             startLatch.countDown(); //동시 실행 시작
-            doneLatch.await(); // 모든 작업 종료 대기
+            boolean completed = doneLatch.await(10, TimeUnit.SECONDS); // 모든 작업 종료 대기
             executor.shutdown(); //executor 종료
 
             //then
+            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심");
             em.clear();
             Member memberA = em.find(Member.class, memberAId);
             Member memberB = em.find(Member.class, memberBId);
@@ -457,10 +459,11 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             }
             //when
             startLatch.countDown();
-            doneLatch.await();
-            executor.shutdown();
+            boolean completed = doneLatch.await(10, TimeUnit.SECONDS); // 모든 작업 종료 대기
+            executor.shutdown(); //executor 종료
 
             //then
+            assertThat(completed).as("동시성 작업 타임아웃 - 데드락 의심");
             em.clear();
             List<Post> soldPosts = em.createQuery("select p from Post p where p.status = :status", Post.class)
                     .setParameter("status", PostStatus.SOLD)
