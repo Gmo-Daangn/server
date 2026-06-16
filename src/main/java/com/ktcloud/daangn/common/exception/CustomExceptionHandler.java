@@ -16,7 +16,6 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.net.BindException;
 import java.security.SignatureException;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -40,15 +39,9 @@ public class CustomExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     protected ResponseEntity<BaseResponse<String>> dataIntegrityViolationException(DataIntegrityViolationException e) {
-        Throwable cause = e.getCause();
-
-        if (cause instanceof SQLException sqlEx && "23000".equals(sqlEx.getSQLState()))
-            return ResponseEntity.status(ResultCode.BAD_REQUEST.getStatusCode())
-                    .body(BaseResponse.fail(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.", null));
-
         return ResponseEntity
                 .status(ResultCode.BAD_REQUEST.getStatusCode())
-                .body(BaseResponse.fail(HttpStatus.BAD_REQUEST.value(), "잘못된 요청입니다.", null));
+                .body(BaseResponse.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "잘못된 요청입니다.", null));
     }
 
     /// 매개변수 값이 올바르게 처리 되지 않았을때 에러처리
