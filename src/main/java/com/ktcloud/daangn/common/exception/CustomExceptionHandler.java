@@ -41,7 +41,7 @@ public class CustomExceptionHandler {
     protected ResponseEntity<BaseResponse<String>> dataIntegrityViolationException(DataIntegrityViolationException e) {
         return ResponseEntity
                 .status(ResultCode.BAD_REQUEST.getStatusCode())
-                .body(BaseResponse.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "잘못된 요청입니다.", null));
+                .body(BaseResponse.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "필수 값이 누락되었거나 형식이 올바르지 않습니다.", null));
     }
 
     /// 매개변수 값이 올바르게 처리 되지 않았을때 에러처리
