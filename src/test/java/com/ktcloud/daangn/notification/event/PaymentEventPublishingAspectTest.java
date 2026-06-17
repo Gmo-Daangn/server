@@ -90,7 +90,7 @@ class PaymentEventPublishingAspectTest {
         @Test
         @DisplayName("[HAPPY] 결제 요청 대상에게 이벤트를 발행한다")
         void publishesPaymentRequestEvents() {
-            PaymentInitRequestDto dto = new PaymentInitRequestDto(SELLER_ID, POST_ID, AMOUNT);
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(ROOM_ID, POST_ID, AMOUNT);
             given(contextResolver.resolvePaymentRequestTargets(POST_ID))
                     .willReturn(List.of(new PaymentNotificationContextResolver.PaymentRequestTarget(BUYER_ID, ROOM_ID)));
 
@@ -107,7 +107,7 @@ class PaymentEventPublishingAspectTest {
         @Test
         @DisplayName("[HAPPY] 결제 요청 대상이 없으면 이벤트를 발행하지 않는다")
         void doesNotPublishWhenTargetNotFound() {
-            PaymentInitRequestDto dto = new PaymentInitRequestDto(SELLER_ID, POST_ID, AMOUNT);
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(ROOM_ID, POST_ID, AMOUNT);
             given(contextResolver.resolvePaymentRequestTargets(POST_ID)).willReturn(List.of());
 
             aspect.publishPaymentRequestEvents(dto);
