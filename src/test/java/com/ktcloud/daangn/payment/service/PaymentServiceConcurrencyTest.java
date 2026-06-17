@@ -1,12 +1,14 @@
 package com.ktcloud.daangn.payment.service;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.config.TestContainerConfig;
 import com.ktcloud.daangn.member.entity.Member;
-import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
 import com.ktcloud.daangn.payment.entity.PaymentStatus;
+import com.ktcloud.daangn.payment.entity.PaymentToken;
+import com.ktcloud.daangn.payment.entity.PaymentTokenStatus;
 import com.ktcloud.daangn.post.entity.Post;
 import com.ktcloud.daangn.post.entity.PostStatus;
 import jakarta.persistence.EntityManager;
@@ -22,6 +24,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -42,7 +45,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
 
     private Long mainMemberId;
     private final List<Long> counterpartMemberIds = new ArrayList<>();
-    private final List<Long> postIds = new ArrayList<>();
+    private final List<String> txIds = new ArrayList<>();
 
     @BeforeEach
     public void initMainMember(){
@@ -64,10 +67,13 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
     @AfterEach
     public void clear() {
         runInTx(() -> {
+            em.createQuery("delete from PaymentToken").executeUpdate();
             em.createQuery("delete from PaymentHistory").executeUpdate();
             em.createQuery("delete from Post").executeUpdate();
             em.createQuery("delete from Member").executeUpdate();
         });
+        counterpartMemberIds.clear();
+        txIds.clear();
     }
 
     @Nested
@@ -94,11 +100,10 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
 
             for (int i = 0; i < buyUserCount; i++) {
                 final int index = i;
-                String formattedIndex = String.format("%02d", index);
                 executor.submit(() -> {
                     try {
                         startLatch.await();
-                        paymentService.confirmPayment(counterpartMemberIds.get(index), new PaymentTokenDto("TXN_" + formattedIndex, POST_PRICE, postIds.get(index)));
+                        paymentService.confirmPayment(counterpartMemberIds.get(index), txIds.get(index));
                     } catch (Exception e) {
                         System.out.println("e = " + e.getMessage());
                     } finally {
@@ -163,11 +168,10 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             CountDownLatch doneLatch = new CountDownLatch(buyUserCount);
             for (int i = 0; i < buyUserCount; i++) {
                 final int index = i;
-                String formattedIndex = String.format("%02d", index);
                 executor.submit(() -> {
                     try {
                         startLatch.await();
-                        paymentService.confirmPayment(mainMemberId, new PaymentTokenDto("TXN_" + formattedIndex, POST_PRICE, postIds.get(index)));
+                        paymentService.confirmPayment(mainMemberId, txIds.get(index));
                     } catch (Exception e) {
                         System.out.println("e = " + e.getMessage());
                     } finally {
@@ -240,11 +244,10 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
 
             for (int i = 0; i < buyUserCount; i++) {
                 final int index = i;
-                String formattedIndex = String.format("%02d", index);
                 executor.submit(() -> {
                     try {
                         startLatch.await();
-                        paymentService.confirmPayment(mainMemberId, new PaymentTokenDto("TXN_" + formattedIndex, POST_PRICE, postIds.get(index)));
+                        paymentService.confirmPayment(mainMemberId, txIds.get(index));
                         successCount.incrementAndGet();
                     } catch (Exception e) {
                         boolean isExpected = e instanceof InvalidInputException && "잔액이 부족합니다.".equals(e.getMessage());
@@ -313,7 +316,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
                 executor.submit(() -> {
                     try {
                         startLatch.await();
-                        paymentService.confirmPayment(mainMemberId, new PaymentTokenDto("TXN_11" , POST_PRICE, postIds.get(1))); //동일한 tranSeqNo
+                        paymentService.confirmPayment(mainMemberId, txIds.getFirst()); //동일한 tranSeqNo
                         successCount.incrementAndGet();
                     } catch (Exception e) {
                         boolean isExpected = e instanceof DataIntegrityViolationException
@@ -376,9 +379,10 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             Long memberAId = mainMemberId;
             Long memberBId = counterpartMemberIds.getFirst();
 
-            initPosts(List.of(memberAId,memberBId));
-            Long postA = postIds.getFirst();
-            Long postB = postIds.getLast();
+            initPosts(List.of(memberAId, memberBId));
+
+            String txA = txIds.getFirst();
+            String txB = txIds.getLast();
 
             ExecutorService executor = Executors.newFixedThreadPool(2);
             CountDownLatch startLatch = new CountDownLatch(1);
@@ -387,7 +391,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             executor.submit(() -> { //A -> B
                 try {
                     startLatch.await();
-                    paymentService.confirmPayment(memberAId, new PaymentTokenDto("TXN_A_TO_B" , POST_PRICE, postB));
+                    paymentService.confirmPayment(memberAId, txB);
                 } catch (Exception e) {
                     System.out.println("e = " + e.getMessage());
                 } finally {
@@ -398,7 +402,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             executor.submit(() -> { // B -> A
                 try {
                     startLatch.await();
-                    paymentService.confirmPayment(memberBId, new PaymentTokenDto("TXN_B_TO_A" , POST_PRICE, postA));
+                    paymentService.confirmPayment(memberBId, txA);
                 } catch (Exception e) {
                     System.out.println("e = " + e.getMessage());
                 } finally {
@@ -442,7 +446,6 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
             initCounterpartMembers(buyUserCount);
 
             initPosts(List.of(mainMemberId));
-            Long sharedPostId = postIds.getFirst();
 
             ExecutorService executor = Executors.newFixedThreadPool(buyUserCount);
             CountDownLatch startLatch = new CountDownLatch(1);
@@ -450,11 +453,10 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
 
             for (int i = 0; i < buyUserCount; i++) {
                 final int index = i;
-                String formattedIndex = String.format("%02d", index);
                 executor.submit(() -> {
                     try {
                         startLatch.await();
-                        paymentService.confirmPayment(counterpartMemberIds.get(index), new PaymentTokenDto("TXN_" + formattedIndex, POST_PRICE, sharedPostId));
+                        paymentService.confirmPayment(counterpartMemberIds.get(index), txIds.getFirst());
                     } catch (Exception e) {
                         System.out.println("e = " + e.getMessage());
                     } finally {
@@ -515,7 +517,11 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
                 Member seller = em.find(Member.class, sellerId);
                 Post targetPost = new Post(seller, "제목", "내용", POST_PRICE, ADDRESS);
                 em.persist(targetPost);
-                postIds.add(targetPost.getId());
+
+                UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
+                PaymentToken paymentToken = new PaymentToken(tranSeqNo, targetPost.getId(), sellerId, POST_PRICE, PaymentTokenStatus.PENDING);
+                em.persist(paymentToken);
+                txIds.add(tranSeqNo.toString());
             }
             em.flush();
             em.clear();

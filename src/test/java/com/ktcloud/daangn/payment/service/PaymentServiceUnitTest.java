@@ -9,9 +9,11 @@ import com.ktcloud.daangn.member.service.MemberService;
 import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
-import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
+import com.ktcloud.daangn.payment.entity.PaymentToken;
+import com.ktcloud.daangn.payment.entity.PaymentTokenStatus;
 import com.ktcloud.daangn.payment.repository.PaymentRepository;
+import com.ktcloud.daangn.payment.repository.PaymentTokenRepository;
 import com.ktcloud.daangn.post.entity.Post;
 import com.ktcloud.daangn.post.entity.PostStatus;
 import com.ktcloud.daangn.post.service.PostService;
@@ -24,10 +26,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,6 +41,7 @@ class PaymentServiceUnitTest {
     @Mock private PaymentRepository paymentRepository;
     @Mock private PostService postService;
     @Mock private ChatMessageService chatMessageService;
+    @Mock private PaymentTokenRepository paymentTokenRepository;
 
     @InjectMocks private PaymentServiceImpl paymentService;
 
@@ -51,7 +56,8 @@ class PaymentServiceUnitTest {
         public void deposit_ValidRequest_Success(){
             //given
             Long tranAmt = 5000L;
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tranAmt, 1L);
+            UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tranAmt, 1L);
             Member findMember = Member.builder()
                     .id(1L)
                     .email("test@test.com")
@@ -80,7 +86,8 @@ class PaymentServiceUnitTest {
         public void withdraw_ValidRequest_Success(){
             //given
             Long tranAmt = 5000L;
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tranAmt, 1L);
+            UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tranAmt, 1L);
             Member findMember = Member.builder()
                     .id(1L)
                     .email("test@test.com")
@@ -130,10 +137,12 @@ class PaymentServiceUnitTest {
             given(postService.getPostOrThrow(postId)).willReturn(targetPost);
             given(chatMessageService.create(eq(roomId), eq(toMemberId), contains("결제 링크입니다!")))
                     .willReturn(mock(ChatMessageResponseDto.class));
+            ReflectionTestUtils.setField(paymentService, "paymentLinkBaseUrl", "http://localhost:8080");
             //when
             paymentService.requestPayment(toMemberId, dto);
             // then
-            then(chatMessageService).should(times(1)).create(eq(roomId), eq(toMemberId), contains("결제 링크입니다!"));
+            verify(chatMessageService).create(eq(roomId), eq(toMemberId), contains("결제 링크입니다!"));
+            verify(paymentTokenRepository).save(any(PaymentToken.class));
         }
     }
 
@@ -170,15 +179,16 @@ class PaymentServiceUnitTest {
             Post targetPost = new Post(toMember, "제목", "내용", tranAmt, address);
             ReflectionTestUtils.setField(targetPost, "id", postId);
 
-            String url = UuidCreator.getTimeOrderedEpoch() + "_" + tranAmt + "_" + targetPost.getId();
-            PaymentTokenDto dto = PaymentTokenDto.parse(url);
+            UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
+            String tx = tranSeqNo.toString();
 
+            PaymentToken paymentToken = new PaymentToken(tranSeqNo,postId,toMemberId,tranAmt, PaymentTokenStatus.PENDING);
             given(memberService.getByIdOrThrowWithLock(fromMemberId)).willReturn(fromMember);
             given(memberService.getByIdOrThrowWithLock(toMemberId)).willReturn(toMember);
             given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
-
+            given(paymentTokenRepository.getToken(tranSeqNo)).willReturn(Optional.of(paymentToken));
             //when
-            PaymentResponseDto result = paymentService.confirmPayment(fromMember.getId(), dto);
+            PaymentResponseDto result = paymentService.confirmPayment(fromMember.getId(), tx);
             //then
             verify(paymentRepository, times(2)).save(any(PaymentHistory.class));
             assertThat(result.balance()).isEqualTo(fromMember.getBalance());
@@ -187,6 +197,7 @@ class PaymentServiceUnitTest {
 
             assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE + tranAmt);
             assertThat(targetPost.getStatus()).isEqualTo(PostStatus.SOLD);
+            assertThat(paymentToken.getStatus()).isEqualTo(PaymentTokenStatus.COMPLETED);
         }
     }
 }

@@ -7,8 +7,10 @@ import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
 import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
-import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
+import com.ktcloud.daangn.payment.entity.PaymentToken;
+import com.ktcloud.daangn.payment.entity.PaymentTokenStatus;
 import com.ktcloud.daangn.payment.repository.PaymentRepository;
+import com.ktcloud.daangn.payment.repository.PaymentTokenRepository;
 import com.ktcloud.daangn.post.entity.Post;
 import com.ktcloud.daangn.post.entity.PostStatus;
 import com.ktcloud.daangn.post.service.PostService;
@@ -22,6 +24,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
@@ -34,6 +39,8 @@ public class PaymentServiceUnitExceptionTest {
     private PaymentRepository paymentRepository;
     @Mock
     private PostService postService;
+    @Mock
+    private PaymentTokenRepository paymentTokenRepository;
 
     @InjectMocks
     private PaymentServiceImpl paymentService;
@@ -42,12 +49,14 @@ public class PaymentServiceUnitExceptionTest {
     @DisplayName("입금 예외 테스트")
     class DepositExceptionTest {
 
+        UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
+
         @Test
         @DisplayName("은행으로부터 중복된 거래 코드가 담긴 API 요청에 대한 예외를 발생한다.")
         public void deposit_DuplicateTranSeqNo_ThrowsException() {
             //given
             Long tran_amt = 5000L;
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tran_amt, 1L);
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 1L);
 
             given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(true);
             //when, then
@@ -61,7 +70,7 @@ public class PaymentServiceUnitExceptionTest {
         public void deposit_NonExistentMember_ThrowsException() {
             //given
             Long tran_amt = 5000L;
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tran_amt, 99L);
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 99L);
 
             given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
             given(memberService.getByIdOrThrow(dto.memberId())).willThrow(new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "존재하지 않는 회원입니다."));
@@ -78,7 +87,7 @@ public class PaymentServiceUnitExceptionTest {
             //given
             Long tran_amt = null;
 
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tran_amt, 1L);
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 1L);
             Member findMember = Member.builder()
                     .id(1L)
                     .email("test@test.com")
@@ -101,7 +110,7 @@ public class PaymentServiceUnitExceptionTest {
             //given
             Long tran_amt = -5000L;
 
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tran_amt, 1L);
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 1L);
             Member findMember = Member.builder()
                     .id(1L)
                     .email("test@test.com")
@@ -124,7 +133,7 @@ public class PaymentServiceUnitExceptionTest {
             //given
             Long tran_amt = 0L;
 
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tran_amt, 1L);
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 1L);
             Member findMember = Member.builder()
                     .id(1L)
                     .email("test@test.com")
@@ -146,12 +155,14 @@ public class PaymentServiceUnitExceptionTest {
     @DisplayName("출금 예외 테스트")
     class WithdrawExceptionTest {
 
+        UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
+
         @Test
         @DisplayName("은행으로부터 중복된 거래 코드가 담긴 API 요청에 대한 예외를 발생한다.")
         public void withdraw_DuplicateTranSeqNo_ThrowsException() {
             //given
             Long tran_amt = 5000L;
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tran_amt, 1L);
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 1L);
 
             given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(true);
             //when, then
@@ -165,7 +176,7 @@ public class PaymentServiceUnitExceptionTest {
         public void withdraw_NonExistentMember_ThrowsException() {
             //given
             Long tran_amt = 5000L;
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tran_amt, 99L);
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 99L);
 
             given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
             given(memberService.getByIdOrThrow(dto.memberId())).willThrow(new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "존재하지 않는 회원입니다."));
@@ -182,7 +193,7 @@ public class PaymentServiceUnitExceptionTest {
 
             Long tran_amt = null;
 
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tran_amt, 99L);
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 99L);
             Member findMember = Member.builder()
                     .id(1L)
                     .email("test@test.com")
@@ -205,7 +216,7 @@ public class PaymentServiceUnitExceptionTest {
             //given
             Long tran_amt = -5000L;
 
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tran_amt, 99L);
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 99L);
             Member findMember = Member.builder()
                     .id(1L)
                     .email("test@test.com")
@@ -228,7 +239,7 @@ public class PaymentServiceUnitExceptionTest {
             //given
             Long tran_amt = 0L;
 
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tran_amt, 99L);
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 99L);
             Member findMember = Member.builder()
                     .id(1L)
                     .email("test@test.com")
@@ -251,7 +262,7 @@ public class PaymentServiceUnitExceptionTest {
             //given
             Long tran_amt = 5000L;
 
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", tran_amt, 99L);
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 99L);
             Member findMember = Member.builder()
                     .id(1L)
                     .email("test@test.com")
@@ -325,17 +336,30 @@ public class PaymentServiceUnitExceptionTest {
     class confirmPaymentExceptionTest {
 
         @Test
+        @DisplayName("존재하지 않는 거래 코드일 경우 예외가 발생한다.")
+        public void confirmPayment_InvalidToken_ThrowsException() {
+            //given
+            UUID token = UuidCreator.getTimeOrderedEpoch();
+            String tx = token.toString();
+
+            given(paymentTokenRepository.getToken(token)).willReturn(Optional.empty());
+            //when, then
+            assertThatThrownBy(() -> paymentService.confirmPayment(1L, tx))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessage("잘못된 접근입니다.");
+        }
+
+        @Test
         @DisplayName("이미 처리된 거래코드일 경우 예외가 발생한다.")
         public void confirmPayment_DuplicateTranSeqNo_ThrowsException() {
             //given
-            Long tranAmt = 5000L;
-            Long postId = 1L;
-            String url = UuidCreator.getTimeOrderedEpoch() + "_" + tranAmt + "_" + postId;
-            PaymentTokenDto dto = PaymentTokenDto.parse(url);
+            UUID token = UuidCreator.getTimeOrderedEpoch();
+            String tx = token.toString();
+            PaymentToken completedToken = new PaymentToken(token, 1L, 1L, 5000L, PaymentTokenStatus.COMPLETED);
 
-            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(true);
+            given(paymentTokenRepository.getToken(token)).willReturn(Optional.of(completedToken));
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(1L, dto))
+            assertThatThrownBy(() -> paymentService.confirmPayment(1L, tx))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("이미 진행된 거래입니다.");
         }
@@ -344,15 +368,15 @@ public class PaymentServiceUnitExceptionTest {
         @DisplayName("게시물이 존재하지 않을 경우 예외가 발생한다.")
         public void confirmPayment_NonExistentPost_ThrowsException() {
             //given
-            Long tranAmt = 5000L;
             Long postId = 1L;
-            String url = UuidCreator.getTimeOrderedEpoch() + "_" + tranAmt + "_" + postId;
-            PaymentTokenDto dto = PaymentTokenDto.parse(url);
+            UUID token = UuidCreator.getTimeOrderedEpoch();
+            String tx = token.toString();
+            PaymentToken findToken = new PaymentToken(token, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
 
-            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
+            given(paymentTokenRepository.getToken(token)).willReturn(Optional.of(findToken));
             given(postService.getPostOrThrowWithLock(postId)).willThrow(new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(1L, dto))
+            assertThatThrownBy(() -> paymentService.confirmPayment(1L, tx))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("해당 게시글이 존재하지 않습니다.");
         }
@@ -376,13 +400,14 @@ public class PaymentServiceUnitExceptionTest {
             Post targetPost = new Post(fromMember, "제목", "내용", tranAmt, address);
             ReflectionTestUtils.setField(targetPost, "id", postId);
 
-            String url = UuidCreator.getTimeOrderedEpoch() + "_" + tranAmt + "_" + postId;
-            PaymentTokenDto dto = PaymentTokenDto.parse(url);
+            UUID token = UuidCreator.getTimeOrderedEpoch();
+            String tx = token.toString();
+            PaymentToken findToken = new PaymentToken(token, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
 
-            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
+            given(paymentTokenRepository.getToken(token)).willReturn(Optional.of(findToken));
             given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(fromMember.getId(), dto))
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMember.getId(), tx))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("잘못된 접근입니다.");
         }
@@ -408,13 +433,14 @@ public class PaymentServiceUnitExceptionTest {
             ReflectionTestUtils.setField(targetPost, "id", postId);
             ReflectionTestUtils.setField(targetPost, "status", PostStatus.SOLD);
 
-            String url = UuidCreator.getTimeOrderedEpoch() + "_" + tranAmt + "_" + postId;
-            PaymentTokenDto dto = PaymentTokenDto.parse(url);
+            UUID token = UuidCreator.getTimeOrderedEpoch();
+            String tx = token.toString();
+            PaymentToken findToken = new PaymentToken(token, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
 
-            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
+            given(paymentTokenRepository.getToken(token)).willReturn(Optional.of(findToken));
             given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, dto))
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, tx))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("이미 판매된 제품입니다.");
         }
@@ -448,15 +474,16 @@ public class PaymentServiceUnitExceptionTest {
             Post targetPost = new Post(toMember, "제목", "내용", tranAmt, address);
             ReflectionTestUtils.setField(targetPost, "id", postId);
 
-            String url = UuidCreator.getTimeOrderedEpoch() + "_" + tranAmt + "_" + postId;
-            PaymentTokenDto dto = PaymentTokenDto.parse(url);
+            UUID token = UuidCreator.getTimeOrderedEpoch();
+            String tx = token.toString();
+            PaymentToken findToken = new PaymentToken(token, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
 
-            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
+            given(paymentTokenRepository.getToken(token)).willReturn(Optional.of(findToken));
             given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             given(memberService.getByIdOrThrowWithLock(fromMemberId)).willReturn(fromMember);
             given(memberService.getByIdOrThrowWithLock(toMemberId)).willReturn(toMember);
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, dto))
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, tx))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("잔액이 부족합니다.");
         }

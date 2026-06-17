@@ -11,7 +11,9 @@ public interface PaymentService {
 
     PaymentResponseDto withdraw(PaymentRequestDto dto);
 
-    PaymentResponseDto confirmPayment(Long fromMemberId, PaymentTokenDto dto);
+    PaymentResponseDto confirmPayment(Long fromMemberId, String tx);
 
     void requestPayment(Long sellerId,PaymentInitRequestDto dto);
+
+    PaymentTokenDto getTokenInfo(String token);
 }

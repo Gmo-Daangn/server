@@ -11,8 +11,9 @@ import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
-import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
+import com.ktcloud.daangn.payment.entity.PaymentToken;
+import com.ktcloud.daangn.payment.entity.PaymentTokenStatus;
 import com.ktcloud.daangn.post.entity.Post;
 import com.ktcloud.daangn.post.entity.PostStatus;
 import jakarta.persistence.EntityManager;
@@ -25,8 +26,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -72,8 +73,8 @@ public class PaymentServiceIntegrationTest extends TestContainerConfig {
         @DisplayName("은행으로부터 정상적인 입금 확인 API 요청이 처리된다.")
         public void deposit_ValidRequest_Success(){
             //given
-
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, toMemberId);
+            UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, TRAN_AMT, toMemberId);
             //when
             PaymentResponseDto result = paymentService.deposit(dto);
             //then
@@ -93,7 +94,8 @@ public class PaymentServiceIntegrationTest extends TestContainerConfig {
         @DisplayName("은행으로부터 정상적인 출금 확인 API 요청이 처리된다.")
         public void withdraw_ValidRequest_Success(){
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, toMemberId);
+            UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
+            PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, TRAN_AMT, toMemberId);
             //when
             PaymentResponseDto result = paymentService.withdraw(dto);
             //then
@@ -121,27 +123,44 @@ public class PaymentServiceIntegrationTest extends TestContainerConfig {
             //when
             paymentService.requestPayment(toMemberId, dto);
             //then
-            ChatMessage chatMessage = em.createQuery("SELECT c FROM ChatMessage c", ChatMessage.class)
+            ChatMessage chatMessage = em.createQuery("select c from ChatMessage c", ChatMessage.class)
                     .getSingleResult();
             assertThat(chatMessage.getMessage()).contains("결제 링크입니다!");
             assertThat(chatMessage.getMember().getId()).isEqualTo(toMemberId);
+
+            List<PaymentToken> resultList = em.createQuery("select p from PaymentToken p order by p.tranSeqNo asc", PaymentToken.class)
+                    .getResultList();
+            assertThat(resultList).hasSize(1);
         }
     }
-    
+
     @Nested
     @DisplayName("거래 진행 통합 테스트")
     class ConfirmPaymentTest {
-        
+
         @Test
         @DisplayName("생성된 거래가 정상적으로 진행된다.")
         public void confirmPayment_ValidRequest_Success(){
             //given
             initPost();
             initFromMember();
-            String url = UuidCreator.getTimeOrderedEpoch() + "_" + TRAN_AMT + "_" + postId;
-            PaymentTokenDto dto = PaymentTokenDto.parse(url);
+
+            // PaymentToken DB에 직접 저장
+            UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
+            PaymentToken paymentToken = PaymentToken.builder()
+                    .tranSeqNo(tranSeqNo)
+                    .postId(postId)
+                    .sellerId(toMemberId)
+                    .amount(TRAN_AMT)
+                    .status(PaymentTokenStatus.PENDING)
+                    .build();
+            em.persist(paymentToken);
+            em.flush();
+            em.clear();
+
+            String tx = tranSeqNo.toString();
             //when
-            paymentService.confirmPayment(fromMemberId, dto);
+            paymentService.confirmPayment(fromMemberId, tx);
             //then
             Member toMember = em.find(Member.class, toMemberId);
             Member fromMember = em.find(Member.class, fromMemberId);
@@ -151,12 +170,15 @@ public class PaymentServiceIntegrationTest extends TestContainerConfig {
             Post post = em.find(Post.class, postId);
             assertThat(post.getStatus()).isEqualTo(PostStatus.SOLD);
 
-            List<PaymentHistory> paymentHistoryList = em.createQuery("select p from PaymentHistory p order by p.id asc", PaymentHistory.class)
+            List<PaymentHistory> historyList = em.createQuery(
+                            "SELECT p FROM PaymentHistory p ORDER BY p.id ASC", PaymentHistory.class)
                     .getResultList();
-            assertThat(paymentHistoryList.size()).isEqualTo(2);
+            assertThat(historyList).hasSize(2);
+            assertThat(historyList).extracting(PaymentHistory::getTranSeqNo)
+                    .containsOnly(tranSeqNo);
 
-            String tranSeqNo = Arrays.stream(url.split("_")).findFirst().orElse("미존재");
-            assertThat(paymentHistoryList).extracting(PaymentHistory::getTranSeqNo).contains(tranSeqNo);
+            PaymentToken updatedToken = em.find(PaymentToken.class, tranSeqNo);
+            assertThat(updatedToken.getStatus()).isEqualTo(PaymentTokenStatus.COMPLETED);
         }
     }
 

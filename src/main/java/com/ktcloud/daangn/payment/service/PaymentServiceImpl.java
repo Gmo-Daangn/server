@@ -11,11 +11,15 @@ import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
 import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
 import com.ktcloud.daangn.payment.entity.PaymentStatus;
+import com.ktcloud.daangn.payment.entity.PaymentToken;
+import com.ktcloud.daangn.payment.entity.PaymentTokenStatus;
 import com.ktcloud.daangn.payment.repository.PaymentRepository;
+import com.ktcloud.daangn.payment.repository.PaymentTokenRepository;
 import com.ktcloud.daangn.post.entity.Post;
 import com.ktcloud.daangn.post.entity.PostStatus;
 import com.ktcloud.daangn.post.service.PostService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +36,10 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final PostService postService;
     private final ChatMessageService chatMessageService;
+    private final PaymentTokenRepository paymentTokenRepository;
+
+    @Value("${app.payment-link-base-url}")
+    private String paymentLinkBaseUrl;
 
     @Override
     public PaymentResponseDto deposit(PaymentRequestDto dto) {
@@ -58,8 +66,12 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public PaymentResponseDto confirmPayment(Long fromMemberId, PaymentTokenDto dto) {
-        if (paymentRepository.existsByTranSeqNo(dto.tranSeqNo())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
+    public PaymentResponseDto confirmPayment(Long fromMemberId, String tx) {
+        PaymentToken paymentToken = paymentTokenRepository.getToken(UUID.fromString(tx))
+                .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다."));
+        if (paymentToken.isCompleted()) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
+        PaymentTokenDto dto = PaymentTokenDto.from(paymentToken);
+
         Post post = postService.getPostOrThrowWithLock(dto.postId());
         Long targetMemberId = post.getMemberId();
 
@@ -97,6 +109,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         post.markAsSold();
+        paymentToken.markAsCompleted();
 
         paymentRepository.save(fromMemberHistory);
         paymentRepository.save(targetMemberHistory);
@@ -111,10 +124,25 @@ public class PaymentServiceImpl implements PaymentService {
         if (post.getStatus().equals(PostStatus.SOLD)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 판매된 제품입니다.");
 
         UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
-        //todo 추후 amount과 postId는 외부로 노출 하지않는 방향으로 변경 예정
-        String token = tranSeqNo + "_" + dto.amount() + "_" + dto.postId();
+        PaymentToken paymentToken = PaymentToken.builder()
+                .tranSeqNo(tranSeqNo)
+                .postId(dto.postId())
+                .sellerId(sellerId)
+                .amount(dto.amount())
+                .status(PaymentTokenStatus.PENDING)
+                .build();
 
-        String message = "결제 링크입니다!\nhttp://localhost:8080/api/v1/payments/links/" + token;
+        paymentTokenRepository.save(paymentToken);
+
+        String message = "결제 링크입니다!\n" + paymentLinkBaseUrl + "/api/v1/payments/links/" + tranSeqNo;
         chatMessageService.create(dto.roomId(), sellerId, message);
+    }
+
+    @Override
+    public PaymentTokenDto getTokenInfo(String tokenString) {
+        UUID token = UUID.fromString(tokenString);
+        PaymentToken findToken = paymentTokenRepository.getToken(token)
+                .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 링크입니다."));
+        return PaymentTokenDto.from(findToken);
     }
 }

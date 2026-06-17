@@ -16,6 +16,9 @@ spring:
     show-sql: true
     open-in-view: false
 
+app:
+  payment-link-base-url: "http://localhost:8080"
+
 logging:
   pattern:
     console: "[%d{HH:mm:ss.SSS}][%-5level][%logger.%method:line%line] - %msg%n"

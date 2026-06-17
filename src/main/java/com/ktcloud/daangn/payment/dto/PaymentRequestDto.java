@@ -6,10 +6,11 @@ import com.ktcloud.daangn.payment.entity.PaymentStatus;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record PaymentRequestDto(
         @NotBlank
-        String tran_seq_no,
+        UUID tran_seq_no,
         @NotBlank
         Long tran_amt,
         @NotBlank

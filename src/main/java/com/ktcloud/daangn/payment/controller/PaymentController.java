@@ -33,16 +33,14 @@ public class PaymentController {
     }
 
     @GetMapping("/links/{tx}")
-    public BaseResponse<PaymentTradeResponse> detail(@PathVariable String tx) {
-        PaymentTokenDto dto = PaymentTokenDto.parse(tx);
-        return BaseResponse.success(new PaymentTradeResponse(dto.postId(), dto.tranSeqNo(), dto.amount()));
+    public BaseResponse<PaymentTokenDto> detail(@PathVariable String tx) {
+        return BaseResponse.success(paymentService.getTokenInfo(tx));
     }
 
     @PostMapping("/links/{tx}")
     public BaseResponse<PaymentResponseDto> confirmPayment(@AuthenticationPrincipal CustomUser user, @PathVariable String tx) {
         Long fromMemberId = user.getMemberId();
-        PaymentTokenDto dto = PaymentTokenDto.parse(tx);
-        return BaseResponse.success(paymentService.confirmPayment(fromMemberId, dto));
+        return BaseResponse.success(paymentService.confirmPayment(fromMemberId, tx));
     }
 
 }

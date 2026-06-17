@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -32,7 +33,7 @@ public class PaymentHistory {
     private Member member;
 
     @Column(nullable = false)
-    private String tranSeqNo;
+    private UUID tranSeqNo;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
