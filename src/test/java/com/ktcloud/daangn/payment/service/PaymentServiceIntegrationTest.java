@@ -1,6 +1,10 @@
 package com.ktcloud.daangn.payment.service;
 
 import com.github.f4b6a3.uuid.UuidCreator;
+import com.ktcloud.daangn.chat.entity.ChatMessage;
+import com.ktcloud.daangn.chat.entity.ChatParticipant;
+import com.ktcloud.daangn.chat.entity.ChatRoom;
+import com.ktcloud.daangn.chat.entity.ChatType;
 import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.config.TestContainerConfig;
 import com.ktcloud.daangn.member.entity.Member;
@@ -42,6 +46,7 @@ public class PaymentServiceIntegrationTest extends TestContainerConfig {
     private Long toMemberId;
     private Long fromMemberId;
     private Long postId;
+    private Long roomId;
 
     @BeforeEach
     public void initToMember(){
@@ -109,15 +114,17 @@ public class PaymentServiceIntegrationTest extends TestContainerConfig {
         public void requestPayment_ValidRequest_Success(){
             //given
             initPost();
-            PaymentInitRequestDto dto = new PaymentInitRequestDto(postId, TRAN_AMT);
+            initFromMember();
+            initChatRoom();
+
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(roomId, postId, TRAN_AMT);
             //when
-            String result = paymentService.requestPayment(dto);
+            paymentService.requestPayment(toMemberId, dto);
             //then
-            String[] results = result.split("_");
-            assertThat(results.length).isEqualTo(3);
-            assertThat(results[0]).isNotBlank();
-            assertThat(results[1]).isEqualTo(TRAN_AMT.toString());
-            assertThat(results[2]).isEqualTo(postId.toString());
+            ChatMessage chatMessage = em.createQuery("SELECT c FROM ChatMessage c", ChatMessage.class)
+                    .getSingleResult();
+            assertThat(chatMessage.getMessage()).contains("결제 링크입니다!");
+            assertThat(chatMessage.getMember().getId()).isEqualTo(toMemberId);
         }
     }
     
@@ -175,6 +182,21 @@ public class PaymentServiceIntegrationTest extends TestContainerConfig {
         em.persist(targetPost);
         em.flush();
         postId = targetPost.getId();
+        em.clear();
+    }
+
+    private void initChatRoom() {
+        Member seller = em.find(Member.class, toMemberId);
+        Member buyer = em.find(Member.class, fromMemberId);
+
+        ChatRoom chatRoom = ChatRoom.createRoom(postId, ChatType.PRODUCT);
+        em.persist(chatRoom);
+
+        em.persist(ChatParticipant.createParticipant(chatRoom, seller));
+        em.persist(ChatParticipant.createParticipant(chatRoom, buyer));
+
+        em.flush();
+        roomId = chatRoom.getId();
         em.clear();
     }
 }

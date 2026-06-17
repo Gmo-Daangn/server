@@ -13,5 +13,5 @@ public interface PaymentService {
 
     PaymentResponseDto confirmPayment(Long fromMemberId, PaymentTokenDto dto);
 
-    String requestPayment(PaymentInitRequestDto dto);
+    void requestPayment(Long sellerId,PaymentInitRequestDto dto);
 }

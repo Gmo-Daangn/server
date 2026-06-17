@@ -232,9 +232,9 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("존재하지 않는 게시물은 거래를 생성 시 예외가 발생한다.")
         public void requestPayment_NonExistentPost_ThrowsException(){
             //given
-            PaymentInitRequestDto dto = new PaymentInitRequestDto(NON_EXISTENT_ID, TRAN_AMT);
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(toMemberId, NON_EXISTENT_ID, TRAN_AMT);
             //when, then
-            assertThatThrownBy(() -> paymentService.requestPayment(dto))
+            assertThatThrownBy(() -> paymentService.requestPayment(toMemberId, dto))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("해당 게시글이 존재하지 않습니다.");
         }
@@ -245,9 +245,9 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
             //given
             initPost(true);
 
-            PaymentInitRequestDto dto = new PaymentInitRequestDto(postId, TRAN_AMT);
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(toMemberId, postId, TRAN_AMT);
             //when, then
-            assertThatThrownBy(() -> paymentService.requestPayment(dto))
+            assertThatThrownBy(() -> paymentService.requestPayment(toMemberId, dto))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("이미 판매된 제품입니다.");
         }

@@ -27,8 +27,9 @@ public class PaymentController {
     }
 
     @PostMapping("/links")
-    public BaseResponse<String> create(@Valid @RequestBody PaymentInitRequestDto dto) {
-        return BaseResponse.success(paymentService.requestPayment(dto));
+    public BaseResponse<String> create(@AuthenticationPrincipal CustomUser user, @Valid @RequestBody PaymentInitRequestDto dto) {
+        paymentService.requestPayment(user.getMemberId(), dto);
+        return BaseResponse.success("거래 생성 성공");
     }
 
     @GetMapping("/links/{tx}")

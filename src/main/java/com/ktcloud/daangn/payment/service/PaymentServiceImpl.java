@@ -1,6 +1,7 @@
 package com.ktcloud.daangn.payment.service;
 
 import com.github.f4b6a3.uuid.UuidCreator;
+import com.ktcloud.daangn.chat.service.ChatMessageService;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
@@ -30,6 +31,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final MemberService memberService;
     private final PaymentRepository paymentRepository;
     private final PostService postService;
+    private final ChatMessageService chatMessageService;
 
     @Override
     public PaymentResponseDto deposit(PaymentRequestDto dto) {
@@ -103,13 +105,16 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public String requestPayment(PaymentInitRequestDto dto) {
+    public void requestPayment(Long sellerId,PaymentInitRequestDto dto) {
         Post post = postService.getPostOrThrow(dto.postId());
 
         if (post.getStatus().equals(PostStatus.SOLD)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 판매된 제품입니다.");
 
         UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
         //todo 추후 amount과 postId는 외부로 노출 하지않는 방향으로 변경 예정
-        return tranSeqNo+"_"+dto.amount()+"_"+dto.postId();
+        String token = tranSeqNo + "_" + dto.amount() + "_" + dto.postId();
+
+        String message = "결제 링크입니다!\nhttp://localhost:8080/api/v1/payments/links/" + token;
+        chatMessageService.create(dto.roomId(), sellerId, message);
     }
 }

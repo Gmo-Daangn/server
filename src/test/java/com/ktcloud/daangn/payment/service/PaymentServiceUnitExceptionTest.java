@@ -277,12 +277,14 @@ public class PaymentServiceUnitExceptionTest {
         @DisplayName("존재하지 않는 게시물은 거래를 생성 시 예외가 발생한다.")
         public void requestPayment_NonExistentPost_ThrowsException(){
             //given
-            Long tranAmt = 5000L, postId = 1L;
-            PaymentInitRequestDto dto = new PaymentInitRequestDto(postId, tranAmt);
+            Long tranAmt = 5000L;
+            Long postId = 1L;
+            Long toMemberId = 1L;
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(toMemberId, postId, tranAmt);
 
             given(postService.getPostOrThrow(dto.postId())).willThrow(new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
             //when, then
-            assertThatThrownBy(() -> paymentService.requestPayment(dto))
+            assertThatThrownBy(() -> paymentService.requestPayment(toMemberId, dto))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("해당 게시글이 존재하지 않습니다.");
         }
@@ -292,9 +294,11 @@ public class PaymentServiceUnitExceptionTest {
         public void requestPayment_AlreadySoldPost_ThrowsException() {
             //given
             Address address = new Address("서울", "강남", "역삼");
-            Long tranAmt = 5000L, postId = 1L;
+            Long tranAmt = 5000L;
+            Long postId = 1L;
+            Long toMemberId = 1L;
 
-            PaymentInitRequestDto dto = new PaymentInitRequestDto(postId, tranAmt);
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(toMemberId,postId, tranAmt);
 
             Member toMember = Member.builder()
                     .id(2L)
@@ -310,7 +314,7 @@ public class PaymentServiceUnitExceptionTest {
 
             given(postService.getPostOrThrow(postId)).willReturn(targetPost);
             //when, then
-            assertThatThrownBy(() -> paymentService.requestPayment(dto))
+            assertThatThrownBy(() -> paymentService.requestPayment(toMemberId,dto))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("이미 판매된 제품입니다.");
         }

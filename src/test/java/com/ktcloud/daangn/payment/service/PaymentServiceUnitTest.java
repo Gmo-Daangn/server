@@ -1,6 +1,8 @@
 package com.ktcloud.daangn.payment.service;
 
 import com.github.f4b6a3.uuid.UuidCreator;
+import com.ktcloud.daangn.chat.dto.ChatMessageResponseDto;
+import com.ktcloud.daangn.chat.service.ChatMessageService;
 import com.ktcloud.daangn.common.valueObject.Address;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
@@ -23,10 +25,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceUnitTest {
@@ -34,6 +36,7 @@ class PaymentServiceUnitTest {
     @Mock private MemberService memberService;
     @Mock private PaymentRepository paymentRepository;
     @Mock private PostService postService;
+    @Mock private ChatMessageService chatMessageService;
 
     @InjectMocks private PaymentServiceImpl paymentService;
 
@@ -106,12 +109,15 @@ class PaymentServiceUnitTest {
         public void requestPayment_ValidRequest_Success(){
             //given
             Address address = new Address("서울", "강남", "역삼");
-            Long tranAmt = 5000L, postId = 1L;
+            Long tranAmt = 5000L;
+            Long postId = 1L;
+            Long roomId = 1L;
+            Long toMemberId = 1L;
 
-            PaymentInitRequestDto dto = new PaymentInitRequestDto(postId, tranAmt);
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(roomId, postId, tranAmt);
 
             Member toMember = Member.builder()
-                    .id(2L)
+                    .id(toMemberId)
                     .email("test1@test.com")
                     .nickName("테스트2")
                     .balance(INITIAL_BALANCE)
@@ -122,13 +128,12 @@ class PaymentServiceUnitTest {
             ReflectionTestUtils.setField(targetPost, "id", postId);
 
             given(postService.getPostOrThrow(postId)).willReturn(targetPost);
+            given(chatMessageService.create(eq(roomId), eq(toMemberId), contains("결제 링크입니다!")))
+                    .willReturn(mock(ChatMessageResponseDto.class));
             //when
-            String result = paymentService.requestPayment(dto);
-            //then
-            String[] results = result.split("_");
-            assertThat(results.length).isEqualTo(3);
-            assertThat(Long.parseLong(results[1])).isEqualTo(dto.amount());
-            assertThat(Long.parseLong(results[2])).isEqualTo(dto.postId());
+            paymentService.requestPayment(toMemberId, dto);
+            // then
+            then(chatMessageService).should(times(1)).create(eq(roomId), eq(toMemberId), contains("결제 링크입니다!"));
         }
     }
 
