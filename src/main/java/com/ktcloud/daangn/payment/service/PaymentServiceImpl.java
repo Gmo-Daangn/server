@@ -67,7 +67,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponseDto confirmPayment(Long fromMemberId, UUID tx) {
-        PaymentToken paymentToken = paymentTokenRepository.getToken(tx)
+        PaymentToken paymentToken = paymentTokenRepository.getTokenWithLock(tx)
                 .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다."));
         if (paymentToken.isCompleted()) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
         PaymentTokenDto dto = PaymentTokenDto.from(paymentToken);
@@ -139,9 +139,11 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PaymentTokenDto getTokenInfo(UUID token) {
         PaymentToken findToken = paymentTokenRepository.getToken(token)
                 .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 링크입니다."));
+        if (findToken.isCompleted()) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
         return PaymentTokenDto.from(findToken);
     }
 }

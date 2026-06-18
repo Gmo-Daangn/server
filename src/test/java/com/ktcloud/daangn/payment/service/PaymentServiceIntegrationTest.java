@@ -11,6 +11,7 @@ import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
+import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
 import com.ktcloud.daangn.payment.entity.PaymentToken;
 import com.ktcloud.daangn.payment.entity.PaymentTokenStatus;
@@ -178,6 +179,41 @@ public class PaymentServiceIntegrationTest extends TestContainerConfig {
 
             PaymentToken updatedToken = em.find(PaymentToken.class, tranSeqNo);
             assertThat(updatedToken.getStatus()).isEqualTo(PaymentTokenStatus.COMPLETED);
+        }
+    }
+
+    @Nested
+    @DisplayName("토큰 조회 정상 테스트")
+    class getTokenInfo{
+
+        @Test
+        @DisplayName("토큰이 존재하면 DTO로 변환해서 리턴한다.")
+        public void getTokenInfo_ValidRequest_Success(){
+            //given
+            //given
+            initPost();
+            initFromMember();
+
+            // PaymentToken DB에 직접 저장
+            UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
+            PaymentToken paymentToken = PaymentToken.builder()
+                    .tranSeqNo(tranSeqNo)
+                    .postId(postId)
+                    .sellerId(toMemberId)
+                    .amount(TRAN_AMT)
+                    .status(PaymentTokenStatus.PENDING)
+                    .build();
+            em.persist(paymentToken);
+            em.flush();
+            em.clear();
+
+            //when
+            PaymentTokenDto dto = paymentService.getTokenInfo(tranSeqNo);
+            //then
+            assertThat(dto).isNotNull();
+            assertThat(dto.tranSeqNo()).isEqualTo(tranSeqNo);
+            assertThat(dto.postId()).isEqualTo(postId);
+            assertThat(dto.amount()).isEqualTo(TRAN_AMT);
         }
     }
 

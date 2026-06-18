@@ -9,6 +9,7 @@ import com.ktcloud.daangn.member.service.MemberService;
 import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
+import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
 import com.ktcloud.daangn.payment.entity.PaymentToken;
 import com.ktcloud.daangn.payment.entity.PaymentTokenStatus;
@@ -185,7 +186,7 @@ class PaymentServiceUnitTest {
             given(memberService.getByIdOrThrowWithLock(fromMemberId)).willReturn(fromMember);
             given(memberService.getByIdOrThrowWithLock(toMemberId)).willReturn(toMember);
             given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
-            given(paymentTokenRepository.getToken(tranSeqNo)).willReturn(Optional.of(paymentToken));
+            given(paymentTokenRepository.getTokenWithLock(tranSeqNo)).willReturn(Optional.of(paymentToken));
             //when
             PaymentResponseDto result = paymentService.confirmPayment(fromMember.getId(), tranSeqNo);
             //then
@@ -197,6 +198,32 @@ class PaymentServiceUnitTest {
             assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE + tranAmt);
             assertThat(targetPost.getStatus()).isEqualTo(PostStatus.SOLD);
             assertThat(paymentToken.getStatus()).isEqualTo(PaymentTokenStatus.COMPLETED);
+        }
+    }
+
+    @Nested
+    @DisplayName("토큰 조회 정상 테스트")
+    class getTokenInfo{
+
+        @Test
+        @DisplayName("토큰이 존재하면 DTO로 변환해서 리턴한다.")
+        public void getTokenInfo_ValidRequest_Success(){
+            //given
+            long postId = 1L;
+            long toMemberId = 1L;
+            long tranAmt = 5000L;
+
+            UUID tx = UuidCreator.getTimeOrderedEpoch();
+            PaymentToken paymentToken = new PaymentToken(tx,postId,toMemberId,tranAmt, PaymentTokenStatus.PENDING);
+
+            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.of(paymentToken));
+            //when
+            PaymentTokenDto dto = paymentService.getTokenInfo(tx);
+            //then
+            assertThat(dto).isNotNull();
+            assertThat(dto.tranSeqNo()).isEqualTo(tx);
+            assertThat(dto.postId()).isEqualTo(postId);
+            assertThat(dto.amount()).isEqualTo(tranAmt);
         }
     }
 }

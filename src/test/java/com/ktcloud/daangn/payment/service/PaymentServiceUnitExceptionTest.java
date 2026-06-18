@@ -341,7 +341,7 @@ public class PaymentServiceUnitExceptionTest {
             //given
             UUID tx = UuidCreator.getTimeOrderedEpoch();
 
-            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.empty());
+            given(paymentTokenRepository.getTokenWithLock(tx)).willReturn(Optional.empty());
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(1L, tx))
                     .isInstanceOf(InvalidInputException.class)
@@ -355,7 +355,7 @@ public class PaymentServiceUnitExceptionTest {
             UUID tx = UuidCreator.getTimeOrderedEpoch();
             PaymentToken completedToken = new PaymentToken(tx, 1L, 1L, 5000L, PaymentTokenStatus.COMPLETED);
 
-            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.of(completedToken));
+            given(paymentTokenRepository.getTokenWithLock(tx)).willReturn(Optional.of(completedToken));
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(1L, tx))
                     .isInstanceOf(InvalidInputException.class)
@@ -370,7 +370,7 @@ public class PaymentServiceUnitExceptionTest {
             UUID tx = UuidCreator.getTimeOrderedEpoch();
             PaymentToken findToken = new PaymentToken(tx, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
 
-            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.of(findToken));
+            given(paymentTokenRepository.getTokenWithLock(tx)).willReturn(Optional.of(findToken));
             given(postService.getPostOrThrowWithLock(postId)).willThrow(new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(1L, tx))
@@ -400,7 +400,7 @@ public class PaymentServiceUnitExceptionTest {
             UUID tx = UuidCreator.getTimeOrderedEpoch();
             PaymentToken findToken = new PaymentToken(tx, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
 
-            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.of(findToken));
+            given(paymentTokenRepository.getTokenWithLock(tx)).willReturn(Optional.of(findToken));
             given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(fromMember.getId(), tx))
@@ -432,7 +432,7 @@ public class PaymentServiceUnitExceptionTest {
             UUID tx = UuidCreator.getTimeOrderedEpoch();
             PaymentToken findToken = new PaymentToken(tx, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
 
-            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.of(findToken));
+            given(paymentTokenRepository.getTokenWithLock(tx)).willReturn(Optional.of(findToken));
             given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, tx))
@@ -472,7 +472,7 @@ public class PaymentServiceUnitExceptionTest {
             UUID tx = UuidCreator.getTimeOrderedEpoch();
             PaymentToken findToken = new PaymentToken(tx, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
 
-            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.of(findToken));
+            given(paymentTokenRepository.getTokenWithLock(tx)).willReturn(Optional.of(findToken));
             given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             given(memberService.getByIdOrThrowWithLock(fromMemberId)).willReturn(fromMember);
             given(memberService.getByIdOrThrowWithLock(toMemberId)).willReturn(toMember);
@@ -480,6 +480,44 @@ public class PaymentServiceUnitExceptionTest {
             assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, tx))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("잔액이 부족합니다.");
+        }
+    }
+
+    @Nested
+    @DisplayName("토큰 조회 예외 테스트")
+    class getTokenInfo{
+
+        @Test
+        @DisplayName("토큰이 없으면 예외를 발생한다.")
+        public void getTokenInfo_NotFound_Throws(){
+            //given
+            UUID tx = UuidCreator.getTimeOrderedEpoch();
+
+            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.empty());
+            //when, then
+            assertThatThrownBy(() -> paymentService.getTokenInfo(tx))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessage("잘못된 링크입니다.");
+
+        }
+
+        @Test
+        @DisplayName("이미 거래가 진행된 토큰으로 인한 예외를 발생한다.")
+        public void getTokenInfo_AlreadyCompletedToken_ThrowsException(){
+            //given
+            long postId = 1L;
+            long toMemberId = 1L;
+            long tranAmt = 5000L;
+
+            UUID tx = UuidCreator.getTimeOrderedEpoch();
+            PaymentToken paymentToken = new PaymentToken(tx,postId,toMemberId,tranAmt, PaymentTokenStatus.COMPLETED);
+
+            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.of(paymentToken));
+            //when, then
+            assertThatThrownBy(() -> paymentService.getTokenInfo(tx))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessage("이미 진행된 거래입니다.");
+
         }
     }
 }

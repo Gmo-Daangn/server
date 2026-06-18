@@ -10,4 +10,6 @@ public interface PaymentTokenRepository {
     void save(PaymentToken paymentToken);
 
     Optional<PaymentToken> getToken(UUID tranSeqNo);
+
+    Optional<PaymentToken> getTokenWithLock(UUID tranSeqNo);
 }

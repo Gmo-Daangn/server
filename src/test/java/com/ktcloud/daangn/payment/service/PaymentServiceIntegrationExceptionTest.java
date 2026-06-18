@@ -376,6 +376,38 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         }
     }
 
+    @Nested
+    @DisplayName("토큰 조회 예외 테스트")
+    class getTokenInfo{
+
+        @Test
+        @DisplayName("토큰이 없으면 예외를 발생한다.")
+        public void getTokenInfo_NotFound_Throws(){
+            //given
+            initPost(false);
+
+            //when, then
+            assertThatThrownBy(() -> paymentService.getTokenInfo(TRAN_SEQ_NO))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessage("잘못된 링크입니다.");
+
+        }
+
+        @Test
+        @DisplayName("이미 거래가 진행된 토큰으로 인한 예외를 발생한다.")
+        public void getTokenInfo_AlreadyCompletedToken_ThrowsException(){
+            //given
+            initPost(false);
+            initPaymentToken(true);
+
+            //when, then
+            assertThatThrownBy(() -> paymentService.getTokenInfo(TRAN_SEQ_NO))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessage("이미 진행된 거래입니다.");
+
+        }
+    }
+
     private void initPost(Boolean isSold) {
         Member member = em.find(Member.class, toMemberId);
         Address address = new Address("서울시", "동작구", "사당동");
