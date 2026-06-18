@@ -283,11 +283,9 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
             em.flush();
             em.clear();
 
-            String tx = TRAN_SEQ_NO.toString();
-
             initFromMember();
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, tx))
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, TRAN_SEQ_NO))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("이미 진행된 거래입니다.");
         }
@@ -310,10 +308,8 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
             em.flush();
             em.clear();
 
-            String tx = TRAN_SEQ_NO.toString();
-
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, tx))
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, TRAN_SEQ_NO))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("해당 게시글이 존재하지 않습니다.");
         }
@@ -323,10 +319,10 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         public void confirmPayment_SelfTransaction_ThrowsException() {
             //given
             initPost(false);
-            String tx = TRAN_SEQ_NO.toString();
+            initPaymentToken(false);
 
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(toMemberId, tx))
+            assertThatThrownBy(() -> paymentService.confirmPayment(toMemberId, TRAN_SEQ_NO))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("잘못된 접근입니다.");
         }
@@ -339,10 +335,8 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
             initPaymentToken(false);
             initFromMember();
 
-            String tx = TRAN_SEQ_NO.toString();
-
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, tx))
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, TRAN_SEQ_NO))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("이미 판매된 제품입니다.");
         }
@@ -366,10 +360,8 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
 
             initFromMember();
 
-            String tx = TRAN_SEQ_NO.toString();
-
             //when, then 예외 학인
-            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, tx))
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, TRAN_SEQ_NO))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("잔액이 부족합니다.");
 

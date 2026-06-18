@@ -45,7 +45,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
 
     private Long mainMemberId;
     private final List<Long> counterpartMemberIds = new ArrayList<>();
-    private final List<String> txIds = new ArrayList<>();
+    private final List<UUID> txIds = new ArrayList<>();
 
     @BeforeEach
     public void initMainMember(){
@@ -381,8 +381,8 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
 
             initPosts(List.of(memberAId, memberBId));
 
-            String txA = txIds.getFirst();
-            String txB = txIds.getLast();
+            UUID txA = txIds.getFirst();
+            UUID txB = txIds.getLast();
 
             ExecutorService executor = Executors.newFixedThreadPool(2);
             CountDownLatch startLatch = new CountDownLatch(1);
@@ -521,7 +521,7 @@ public class PaymentServiceConcurrencyTest extends TestContainerConfig {
                 UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
                 PaymentToken paymentToken = new PaymentToken(tranSeqNo, targetPost.getId(), sellerId, POST_PRICE, PaymentTokenStatus.PENDING);
                 em.persist(paymentToken);
-                txIds.add(tranSeqNo.toString());
+                txIds.add(tranSeqNo);
             }
             em.flush();
             em.clear();

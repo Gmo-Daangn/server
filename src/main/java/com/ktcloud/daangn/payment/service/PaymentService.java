@@ -5,15 +5,17 @@ import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
 import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 
+import java.util.UUID;
+
 public interface PaymentService {
 
     PaymentResponseDto deposit(PaymentRequestDto dto);
 
     PaymentResponseDto withdraw(PaymentRequestDto dto);
 
-    PaymentResponseDto confirmPayment(Long fromMemberId, String tx);
+    PaymentResponseDto confirmPayment(Long fromMemberId, UUID tx);
 
     void requestPayment(Long sellerId,PaymentInitRequestDto dto);
 
-    PaymentTokenDto getTokenInfo(String token);
+    PaymentTokenDto getTokenInfo(UUID token);
 }

@@ -158,9 +158,8 @@ public class PaymentServiceIntegrationTest extends TestContainerConfig {
             em.flush();
             em.clear();
 
-            String tx = tranSeqNo.toString();
             //when
-            paymentService.confirmPayment(fromMemberId, tx);
+            paymentService.confirmPayment(fromMemberId, tranSeqNo);
             //then
             Member toMember = em.find(Member.class, toMemberId);
             Member fromMember = em.find(Member.class, fromMemberId);

@@ -180,7 +180,6 @@ class PaymentServiceUnitTest {
             ReflectionTestUtils.setField(targetPost, "id", postId);
 
             UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
-            String tx = tranSeqNo.toString();
 
             PaymentToken paymentToken = new PaymentToken(tranSeqNo,postId,toMemberId,tranAmt, PaymentTokenStatus.PENDING);
             given(memberService.getByIdOrThrowWithLock(fromMemberId)).willReturn(fromMember);
@@ -188,7 +187,7 @@ class PaymentServiceUnitTest {
             given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             given(paymentTokenRepository.getToken(tranSeqNo)).willReturn(Optional.of(paymentToken));
             //when
-            PaymentResponseDto result = paymentService.confirmPayment(fromMember.getId(), tx);
+            PaymentResponseDto result = paymentService.confirmPayment(fromMember.getId(), tranSeqNo);
             //then
             verify(paymentRepository, times(2)).save(any(PaymentHistory.class));
             assertThat(result.balance()).isEqualTo(fromMember.getBalance());

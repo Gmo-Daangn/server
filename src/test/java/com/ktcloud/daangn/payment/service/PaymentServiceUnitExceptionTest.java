@@ -339,10 +339,9 @@ public class PaymentServiceUnitExceptionTest {
         @DisplayName("존재하지 않는 거래 코드일 경우 예외가 발생한다.")
         public void confirmPayment_InvalidToken_ThrowsException() {
             //given
-            UUID token = UuidCreator.getTimeOrderedEpoch();
-            String tx = token.toString();
+            UUID tx = UuidCreator.getTimeOrderedEpoch();
 
-            given(paymentTokenRepository.getToken(token)).willReturn(Optional.empty());
+            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.empty());
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(1L, tx))
                     .isInstanceOf(InvalidInputException.class)
@@ -353,11 +352,10 @@ public class PaymentServiceUnitExceptionTest {
         @DisplayName("이미 처리된 거래코드일 경우 예외가 발생한다.")
         public void confirmPayment_DuplicateTranSeqNo_ThrowsException() {
             //given
-            UUID token = UuidCreator.getTimeOrderedEpoch();
-            String tx = token.toString();
-            PaymentToken completedToken = new PaymentToken(token, 1L, 1L, 5000L, PaymentTokenStatus.COMPLETED);
+            UUID tx = UuidCreator.getTimeOrderedEpoch();
+            PaymentToken completedToken = new PaymentToken(tx, 1L, 1L, 5000L, PaymentTokenStatus.COMPLETED);
 
-            given(paymentTokenRepository.getToken(token)).willReturn(Optional.of(completedToken));
+            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.of(completedToken));
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(1L, tx))
                     .isInstanceOf(InvalidInputException.class)
@@ -369,11 +367,10 @@ public class PaymentServiceUnitExceptionTest {
         public void confirmPayment_NonExistentPost_ThrowsException() {
             //given
             Long postId = 1L;
-            UUID token = UuidCreator.getTimeOrderedEpoch();
-            String tx = token.toString();
-            PaymentToken findToken = new PaymentToken(token, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
+            UUID tx = UuidCreator.getTimeOrderedEpoch();
+            PaymentToken findToken = new PaymentToken(tx, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
 
-            given(paymentTokenRepository.getToken(token)).willReturn(Optional.of(findToken));
+            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.of(findToken));
             given(postService.getPostOrThrowWithLock(postId)).willThrow(new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(1L, tx))
@@ -400,11 +397,10 @@ public class PaymentServiceUnitExceptionTest {
             Post targetPost = new Post(fromMember, "제목", "내용", tranAmt, address);
             ReflectionTestUtils.setField(targetPost, "id", postId);
 
-            UUID token = UuidCreator.getTimeOrderedEpoch();
-            String tx = token.toString();
-            PaymentToken findToken = new PaymentToken(token, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
+            UUID tx = UuidCreator.getTimeOrderedEpoch();
+            PaymentToken findToken = new PaymentToken(tx, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
 
-            given(paymentTokenRepository.getToken(token)).willReturn(Optional.of(findToken));
+            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.of(findToken));
             given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(fromMember.getId(), tx))
@@ -433,11 +429,10 @@ public class PaymentServiceUnitExceptionTest {
             ReflectionTestUtils.setField(targetPost, "id", postId);
             ReflectionTestUtils.setField(targetPost, "status", PostStatus.SOLD);
 
-            UUID token = UuidCreator.getTimeOrderedEpoch();
-            String tx = token.toString();
-            PaymentToken findToken = new PaymentToken(token, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
+            UUID tx = UuidCreator.getTimeOrderedEpoch();
+            PaymentToken findToken = new PaymentToken(tx, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
 
-            given(paymentTokenRepository.getToken(token)).willReturn(Optional.of(findToken));
+            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.of(findToken));
             given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             //when, then
             assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, tx))
@@ -474,11 +469,10 @@ public class PaymentServiceUnitExceptionTest {
             Post targetPost = new Post(toMember, "제목", "내용", tranAmt, address);
             ReflectionTestUtils.setField(targetPost, "id", postId);
 
-            UUID token = UuidCreator.getTimeOrderedEpoch();
-            String tx = token.toString();
-            PaymentToken findToken = new PaymentToken(token, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
+            UUID tx = UuidCreator.getTimeOrderedEpoch();
+            PaymentToken findToken = new PaymentToken(tx, 1L, 1L, 5000L, PaymentTokenStatus.PENDING);
 
-            given(paymentTokenRepository.getToken(token)).willReturn(Optional.of(findToken));
+            given(paymentTokenRepository.getToken(tx)).willReturn(Optional.of(findToken));
             given(postService.getPostOrThrowWithLock(postId)).willReturn(targetPost);
             given(memberService.getByIdOrThrowWithLock(fromMemberId)).willReturn(fromMember);
             given(memberService.getByIdOrThrowWithLock(toMemberId)).willReturn(toMember);
