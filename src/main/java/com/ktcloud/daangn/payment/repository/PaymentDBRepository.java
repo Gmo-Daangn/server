@@ -5,6 +5,8 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.UUID;
+
 @Repository
 @RequiredArgsConstructor
 public class PaymentDBRepository implements PaymentRepository{
@@ -17,7 +19,7 @@ public class PaymentDBRepository implements PaymentRepository{
     }
 
     @Override
-    public Boolean existsByTranSeqNo(String tranSeqNo) {
+    public Boolean existsByTranSeqNo(UUID tranSeqNo) {
         return !em.createQuery("select p from PaymentHistory p where p.tranSeqNo = :tranSeqNo", PaymentHistory.class)
                 .setParameter("tranSeqNo", tranSeqNo)
                 .getResultList()

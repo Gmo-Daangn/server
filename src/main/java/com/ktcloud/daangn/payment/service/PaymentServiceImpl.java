@@ -1,6 +1,7 @@
 package com.ktcloud.daangn.payment.service;
 
 import com.github.f4b6a3.uuid.UuidCreator;
+import com.ktcloud.daangn.chat.service.ChatMessageService;
 import com.ktcloud.daangn.common.exception.InvalidInputException;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.member.service.MemberService;
@@ -9,11 +10,16 @@ import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentResponseDto;
 import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
+import com.ktcloud.daangn.payment.entity.PaymentStatus;
+import com.ktcloud.daangn.payment.entity.PaymentToken;
+import com.ktcloud.daangn.payment.entity.PaymentTokenStatus;
 import com.ktcloud.daangn.payment.repository.PaymentRepository;
+import com.ktcloud.daangn.payment.repository.PaymentTokenRepository;
 import com.ktcloud.daangn.post.entity.Post;
 import com.ktcloud.daangn.post.entity.PostStatus;
 import com.ktcloud.daangn.post.service.PostService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,10 +35,14 @@ public class PaymentServiceImpl implements PaymentService {
     private final MemberService memberService;
     private final PaymentRepository paymentRepository;
     private final PostService postService;
+    private final ChatMessageService chatMessageService;
+    private final PaymentTokenRepository paymentTokenRepository;
+
+    @Value("${app.payment-link-base-url}")
+    private String paymentLinkBaseUrl;
 
     @Override
     public PaymentResponseDto deposit(PaymentRequestDto dto) {
-        //TODO 추후 Lock 관련 이슈 해결하기
         if (paymentRepository.existsByTranSeqNo(dto.tran_seq_no())) {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 내역입니다.");
         }
@@ -45,7 +55,6 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponseDto withdraw(PaymentRequestDto dto) {
-        //TODO 추후 Lock 관련 이슈 해결하기
         if (paymentRepository.existsByTranSeqNo(dto.tran_seq_no())) {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 내역입니다.");
         }
@@ -57,21 +66,32 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public PaymentResponseDto confirmPayment(Long fromMemberId, PaymentTokenDto dto) {
-        if (paymentRepository.existsByTranSeqNo(dto.tranSeqNo())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
-        Post post = postService.getPostOrThrow(dto.postId());
+    public PaymentResponseDto confirmPayment(Long fromMemberId, UUID tx) {
+        PaymentToken paymentToken = paymentTokenRepository.getTokenWithLock(tx)
+                .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다."));
+        if (paymentToken.isCompleted()) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
+        PaymentTokenDto dto = PaymentTokenDto.from(paymentToken);
 
-        if (fromMemberId.equals(post.getMemberId())) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다.");
+        Post post = postService.getPostOrThrowWithLock(dto.postId());
+        Long targetMemberId = post.getMemberId();
+
+        if (fromMemberId.equals(targetMemberId)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 접근입니다.");
         if (post.getStatus().equals(PostStatus.SOLD)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 판매된 제품입니다.");
 
-        Member targetMember = memberService.getByIdOrThrow(post.getMember().getId());
-        Member fromMember = memberService.getByIdOrThrow(fromMemberId);
+        Member fromMember, targetMember;
+        if (fromMemberId < targetMemberId) {
+            fromMember = memberService.getByIdOrThrowWithLock(fromMemberId);
+            targetMember = memberService.getByIdOrThrowWithLock(targetMemberId);
+        } else {
+            targetMember = memberService.getByIdOrThrowWithLock(targetMemberId);
+            fromMember = memberService.getByIdOrThrowWithLock(fromMemberId);
+        }
 
         fromMember.changeBalance(false, dto.amount());
         targetMember.changeBalance(true, dto.amount());
 
         PaymentHistory fromMemberHistory = PaymentHistory.builder()
-                .type("출금")
+                .type(PaymentStatus.WITHDRAWAL)
                 .localDateTime(LocalDateTime.now())
                 .member(fromMember)
                 .balance(fromMember.getBalance())
@@ -80,7 +100,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         PaymentHistory targetMemberHistory = PaymentHistory.builder()
-                .type("입금")
+                .type(PaymentStatus.DEPOSIT)
                 .localDateTime(LocalDateTime.now())
                 .member(targetMember)
                 .balance(targetMember.getBalance())
@@ -89,6 +109,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         post.markAsSold();
+        paymentToken.markAsCompleted();
 
         paymentRepository.save(fromMemberHistory);
         paymentRepository.save(targetMemberHistory);
@@ -97,13 +118,32 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public String requestPayment(PaymentInitRequestDto dto) {
+    public void requestPayment(Long sellerId,PaymentInitRequestDto dto) {
         Post post = postService.getPostOrThrow(dto.postId());
 
         if (post.getStatus().equals(PostStatus.SOLD)) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 판매된 제품입니다.");
 
         UUID tranSeqNo = UuidCreator.getTimeOrderedEpoch();
-        //todo 추후 amount과 postId는 외부로 노출 하지않는 방향으로 변경 예정
-        return tranSeqNo+"_"+dto.amount()+"_"+dto.postId();
+        PaymentToken paymentToken = PaymentToken.builder()
+                .tranSeqNo(tranSeqNo)
+                .postId(dto.postId())
+                .sellerId(sellerId)
+                .amount(dto.amount())
+                .status(PaymentTokenStatus.PENDING)
+                .build();
+
+        paymentTokenRepository.save(paymentToken);
+
+        String message = "결제 링크입니다!\n" + paymentLinkBaseUrl + "/api/v1/payments/links/" + tranSeqNo;
+        chatMessageService.create(dto.roomId(), sellerId, message);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentTokenDto getTokenInfo(UUID token) {
+        PaymentToken findToken = paymentTokenRepository.getToken(token)
+                .orElseThrow(() -> new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "잘못된 링크입니다."));
+        if (findToken.isCompleted()) throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 거래입니다.");
+        return PaymentTokenDto.from(findToken);
     }
 }

@@ -21,4 +21,6 @@ public interface PostService {
     String deletePost(Long postId, Long memberId);
 
     Post getPostOrThrow(Long postId);
+
+    Post getPostOrThrowWithLock(Long postId);
 }

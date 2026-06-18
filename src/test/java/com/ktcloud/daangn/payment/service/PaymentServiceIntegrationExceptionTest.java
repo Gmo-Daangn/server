@@ -7,8 +7,10 @@ import com.ktcloud.daangn.config.TestContainerConfig;
 import com.ktcloud.daangn.member.entity.Member;
 import com.ktcloud.daangn.payment.dto.PaymentInitRequestDto;
 import com.ktcloud.daangn.payment.dto.PaymentRequestDto;
-import com.ktcloud.daangn.payment.dto.PaymentTokenDto;
 import com.ktcloud.daangn.payment.entity.PaymentHistory;
+import com.ktcloud.daangn.payment.entity.PaymentStatus;
+import com.ktcloud.daangn.payment.entity.PaymentToken;
+import com.ktcloud.daangn.payment.entity.PaymentTokenStatus;
 import com.ktcloud.daangn.post.entity.Post;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +22,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.assertj.core.api.Assertions.*;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -36,6 +42,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
     private final Long TRAN_AMT = 5000L;
     private static final Long INITIAL_BALANCE = 5000L;
     private static final Long NON_EXISTENT_ID = Long.MAX_VALUE;
+    private final UUID TRAN_SEQ_NO = UuidCreator.getTimeOrderedEpoch();
 
     private Long toMemberId;
     private Long fromMemberId;
@@ -65,13 +72,16 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("은행으로부터 중복된 거래 코드가 담긴 API 요청에 대한 예외를 발생한다.")
         public void deposit_DuplicateTranSeqNo_ThrowsException(){
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, toMemberId);
+            PaymentRequestDto dto = new PaymentRequestDto(TRAN_SEQ_NO, TRAN_AMT, toMemberId);
 
             Member member = em.find(Member.class, dto.memberId());
             PaymentHistory paymentHistory = PaymentHistory.builder()
                     .member(member)
                     .tranSeqNo(dto.tran_seq_no())
                     .changedCash(dto.tran_amt())
+                    .type(PaymentStatus.DEPOSIT)
+                    .balance(member.getBalance())
+                    .localDateTime(LocalDateTime.now())
                     .build();
             em.persist(paymentHistory);
             em.flush();
@@ -87,7 +97,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("은행으로부터 존재하지 않는 memberId가 담긴 API 요청에 대한 예외를 발생한다.")
         public void deposit_NonExistentMember_ThrowsException() {
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, NON_EXISTENT_ID);
+            PaymentRequestDto dto = new PaymentRequestDto(TRAN_SEQ_NO, TRAN_AMT, NON_EXISTENT_ID);
             //when, then
             assertThatThrownBy(() -> paymentService.deposit(dto))
                     .isInstanceOf(InvalidInputException.class)
@@ -98,7 +108,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("은행으로부터 입금 금액이 null인 요청에 대한 예외를 발생한다.")
         public void deposit_NullAmount_ThrowsException() {
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", null, toMemberId);
+            PaymentRequestDto dto = new PaymentRequestDto(TRAN_SEQ_NO, null, toMemberId);
             //when, then
             assertThatThrownBy(() -> paymentService.deposit(dto))
                     .isInstanceOf(InvalidInputException.class)
@@ -109,7 +119,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("은행으로부터 입금 금액이 음수인 요청에 대한 예외를 발생한다.")
         public void deposit_NegativeAmount_ThrowsException() {
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", -TRAN_AMT, toMemberId);
+            PaymentRequestDto dto = new PaymentRequestDto(TRAN_SEQ_NO, -TRAN_AMT, toMemberId);
             //when, then
             assertThatThrownBy(() -> paymentService.deposit(dto))
                     .isInstanceOf(InvalidInputException.class)
@@ -120,7 +130,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("은행으로부터 입금 금액이 0인 요청에 대한 예외를 발생한다.")
         public void deposit_ZeroAmount_ThrowsException() {
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", 0L, toMemberId);
+            PaymentRequestDto dto = new PaymentRequestDto(TRAN_SEQ_NO, 0L, toMemberId);
             //when, then
             assertThatThrownBy(() -> paymentService.deposit(dto))
                     .isInstanceOf(InvalidInputException.class)
@@ -136,13 +146,16 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("은행으로부터 중복된 거래 코드가 담긴 API 요청에 대한 예외를 발생한다.")
         public void withdraw_DuplicateTranSeqNo_ThrowsException() {
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, toMemberId);
+            PaymentRequestDto dto = new PaymentRequestDto(TRAN_SEQ_NO, TRAN_AMT, toMemberId);
 
             Member member = em.find(Member.class, dto.memberId());
             PaymentHistory paymentHistory = PaymentHistory.builder()
                     .member(member)
                     .tranSeqNo(dto.tran_seq_no())
                     .changedCash(dto.tran_amt())
+                    .type(PaymentStatus.WITHDRAWAL)
+                    .balance(member.getBalance())
+                    .localDateTime(LocalDateTime.now())
                     .build();
             em.persist(paymentHistory);
             em.flush();
@@ -158,7 +171,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("은행으로부터 존재하지 않는 memberId가 담긴 API 요청에 대한 예외를 발생한다.")
         public void withdraw_NonExistentMember_ThrowsException() {
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", TRAN_AMT, NON_EXISTENT_ID);
+            PaymentRequestDto dto = new PaymentRequestDto(TRAN_SEQ_NO, TRAN_AMT, NON_EXISTENT_ID);
 
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
@@ -170,7 +183,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("은행으로부터 출금 금액이 null인 요청에 대한 예외를 발생시킨다.")
         public void withdraw_NullAmount_ThrowsException() {
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", null, toMemberId);
+            PaymentRequestDto dto = new PaymentRequestDto(TRAN_SEQ_NO, null, toMemberId);
 
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
@@ -182,7 +195,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("은행으로부터 출금 금액이 음수인 요청에 대한 예외를 발생시킨다.")
         public void withdraw_NegativeAmount_ThrowsException() {
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", -TRAN_AMT, toMemberId);
+            PaymentRequestDto dto = new PaymentRequestDto(TRAN_SEQ_NO, -TRAN_AMT, toMemberId);
 
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
@@ -194,7 +207,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("은행으로부터 출금 금액이 0인 요청에 대한 예외를 발생시킨다.")
         public void withdraw_ZeroAmount_ThrowsException() {
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", 0L, toMemberId);
+            PaymentRequestDto dto = new PaymentRequestDto(TRAN_SEQ_NO, 0L, toMemberId);
 
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
@@ -206,7 +219,7 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("잔액 부족으로 인해 출금이 불가능할때 예외를 발생시킨다.")
         public void withdraw_InsufficientBalance_ThrowException() {
             //given
-            PaymentRequestDto dto = new PaymentRequestDto("tx123123123asd", INITIAL_BALANCE+1L, toMemberId);
+            PaymentRequestDto dto = new PaymentRequestDto(TRAN_SEQ_NO, INITIAL_BALANCE+1L, toMemberId);
 
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
@@ -223,9 +236,9 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("존재하지 않는 게시물은 거래를 생성 시 예외가 발생한다.")
         public void requestPayment_NonExistentPost_ThrowsException(){
             //given
-            PaymentInitRequestDto dto = new PaymentInitRequestDto(NON_EXISTENT_ID, TRAN_AMT);
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(toMemberId, NON_EXISTENT_ID, TRAN_AMT);
             //when, then
-            assertThatThrownBy(() -> paymentService.requestPayment(dto))
+            assertThatThrownBy(() -> paymentService.requestPayment(toMemberId, dto))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("해당 게시글이 존재하지 않습니다.");
         }
@@ -236,9 +249,9 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
             //given
             initPost(true);
 
-            PaymentInitRequestDto dto = new PaymentInitRequestDto(postId, TRAN_AMT);
+            PaymentInitRequestDto dto = new PaymentInitRequestDto(toMemberId, postId, TRAN_AMT);
             //when, then
-            assertThatThrownBy(() -> paymentService.requestPayment(dto))
+            assertThatThrownBy(() -> paymentService.requestPayment(toMemberId, dto))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("이미 판매된 제품입니다.");
         }
@@ -253,21 +266,26 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("이미 처리된 거래코드일 경우 예외가 발생한다.")
         public void confirmPayment_DuplicateTranSeqNo_ThrowsException() {
             //given
-            PaymentTokenDto dto = PaymentTokenDto.parse(initUrl(false, TRAN_AMT));
+            initPost(false);
+            initPaymentToken(true);
 
             Member member = em.find(Member.class, toMemberId);
             PaymentHistory paymentHistory = PaymentHistory.builder()
                     .member(member)
-                    .tranSeqNo(dto.tranSeqNo())
-                    .changedCash(dto.amount())
+                    .tranSeqNo(TRAN_SEQ_NO)
+                    .changedCash(TRAN_AMT)
+                    .type(PaymentStatus.DEPOSIT)
+                    .balance(member.getBalance())
+                    .localDateTime(LocalDateTime.now())
                     .build();
+
             em.persist(paymentHistory);
             em.flush();
             em.clear();
 
             initFromMember();
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, dto))
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, TRAN_SEQ_NO))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("이미 진행된 거래입니다.");
         }
@@ -276,14 +294,22 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("게시물이 존재하지 않을 경우 예외가 발생한다.")
         public void confirmPayment_NonExistentPost_ThrowsException() {
             //given
-            String[] paseUrl = initUrl(false, TRAN_AMT).split("_");
-            String tranSeqNo = paseUrl[0];
-            Long amount = Long.parseLong(paseUrl[1]);
-            PaymentTokenDto dto = new PaymentTokenDto(tranSeqNo, amount, NON_EXISTENT_ID);
             initFromMember();
 
+            PaymentToken paymentToken = PaymentToken.builder()
+                    .tranSeqNo(TRAN_SEQ_NO)
+                    .postId(NON_EXISTENT_ID)
+                    .sellerId(toMemberId)
+                    .amount(TRAN_AMT)
+                    .status(PaymentTokenStatus.PENDING)
+                    .build();
+
+            em.persist(paymentToken);
+            em.flush();
+            em.clear();
+
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, dto))
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, TRAN_SEQ_NO))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("해당 게시글이 존재하지 않습니다.");
         }
@@ -292,10 +318,11 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("본인의 게시물을 결제 할 수 없다.")
         public void confirmPayment_SelfTransaction_ThrowsException() {
             //given
-            PaymentTokenDto dto = PaymentTokenDto.parse(initUrl(false, TRAN_AMT));
+            initPost(false);
+            initPaymentToken(false);
 
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(toMemberId, dto))
+            assertThatThrownBy(() -> paymentService.confirmPayment(toMemberId, TRAN_SEQ_NO))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("잘못된 접근입니다.");
         }
@@ -304,11 +331,12 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("이미 판매완료된 게시물일 경우 예외가 발생한다")
         public void confirmPayment_AlreadySoldPost_ThrowsException() {
             //given
-            PaymentTokenDto dto = PaymentTokenDto.parse(initUrl(true, TRAN_AMT));
+            initPost(true);
+            initPaymentToken(false);
             initFromMember();
 
             //when, then
-            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, dto))
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, TRAN_SEQ_NO))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("이미 판매된 제품입니다.");
         }
@@ -317,11 +345,23 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         @DisplayName("구매자의 잔액이 부족할 경우 예외가 발생한다")
         public void confirmPayment_InsufficientBalance_ThrowsException() {
             //given
-            PaymentTokenDto dto = PaymentTokenDto.parse(initUrl(false, INITIAL_BALANCE + 1L));
+            initPost(false);
+
+            PaymentToken paymentToken = PaymentToken.builder()
+                    .tranSeqNo(TRAN_SEQ_NO)
+                    .postId(postId)
+                    .sellerId(toMemberId)
+                    .amount(INITIAL_BALANCE + 1L)
+                    .status(PaymentTokenStatus.PENDING)
+                    .build();
+            em.persist(paymentToken);
+            em.flush();
+            em.clear();
+
             initFromMember();
 
             //when, then 예외 학인
-            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, dto))
+            assertThatThrownBy(() -> paymentService.confirmPayment(fromMemberId, TRAN_SEQ_NO))
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessage("잔액이 부족합니다.");
 
@@ -333,6 +373,38 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
 
             assertThat(fromMember.getBalance()).isEqualTo(INITIAL_BALANCE);
             assertThat(toMember.getBalance()).isEqualTo(INITIAL_BALANCE);
+        }
+    }
+
+    @Nested
+    @DisplayName("토큰 조회 예외 테스트")
+    class getTokenInfo{
+
+        @Test
+        @DisplayName("토큰이 없으면 예외를 발생한다.")
+        public void getTokenInfo_NotFound_Throws(){
+            //given
+            initPost(false);
+
+            //when, then
+            assertThatThrownBy(() -> paymentService.getTokenInfo(TRAN_SEQ_NO))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessage("잘못된 링크입니다.");
+
+        }
+
+        @Test
+        @DisplayName("이미 거래가 진행된 토큰으로 인한 예외를 발생한다.")
+        public void getTokenInfo_AlreadyCompletedToken_ThrowsException(){
+            //given
+            initPost(false);
+            initPaymentToken(true);
+
+            //when, then
+            assertThatThrownBy(() -> paymentService.getTokenInfo(TRAN_SEQ_NO))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessage("이미 진행된 거래입니다.");
+
         }
     }
 
@@ -355,6 +427,21 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         em.clear();
     }
 
+    private void initPaymentToken(Boolean isCompleted) {
+        PaymentToken paymentToken = PaymentToken.builder()
+                .tranSeqNo(TRAN_SEQ_NO)
+                .postId(postId)
+                .sellerId(toMemberId)
+                .amount(TRAN_AMT)
+                .status(PaymentTokenStatus.PENDING)
+                .build();
+        if (isCompleted) paymentToken.markAsCompleted();
+
+        em.persist(paymentToken);
+        em.flush();
+        em.clear();
+    }
+
     public void initFromMember() {
         Address address = new Address("서울시", "동작구", "사당동");
         Member member = Member.builder()
@@ -368,10 +455,5 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
         em.flush();
         fromMemberId = member.getId();
         em.clear();
-    }
-
-    private String initUrl(Boolean isSold, Long tranAmt) {
-        initPost(isSold);
-        return UuidCreator.getTimeOrderedEpoch() + "_" + tranAmt + "_" + postId;
     }
 }

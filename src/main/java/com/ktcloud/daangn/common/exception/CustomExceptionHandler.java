@@ -3,6 +3,7 @@ package com.ktcloud.daangn.common.exception;
 import com.ktcloud.daangn.common.ResultCode;
 import com.ktcloud.daangn.common.dto.BaseResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -34,6 +35,13 @@ public class CustomExceptionHandler {
         return ResponseEntity
                 .status(ResultCode.VALIDATION_FAILED.getStatusCode())
                 .body(new BaseResponse<>(ResultCode.VALIDATION_FAILED.getStatusCode(), LocalDateTime.now(), ResultCode.VALIDATION_FAILED.getMessage(), validationErrors));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    protected ResponseEntity<BaseResponse<String>> dataIntegrityViolationException(DataIntegrityViolationException e) {
+        return ResponseEntity
+                .status(ResultCode.BAD_REQUEST.getStatusCode())
+                .body(BaseResponse.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "필수 값이 누락되었거나 형식이 올바르지 않습니다.", null));
     }
 
     /// 매개변수 값이 올바르게 처리 되지 않았을때 에러처리
