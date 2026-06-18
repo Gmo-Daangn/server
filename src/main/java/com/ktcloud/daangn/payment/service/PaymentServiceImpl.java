@@ -43,11 +43,11 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponseDto deposit(PaymentRequestDto dto) {
-        if (paymentRepository.existsByTranSeqNo(dto.tran_seq_no())) {
+        if (paymentRepository.existsByTranSeqNo(dto.tranSeqNo())) {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 내역입니다.");
         }
         Member member = memberService.getByIdOrThrow(dto.memberId());
-        member.changeBalance(true, dto.tran_amt());
+        member.changeBalance(true, dto.tranAmt());
         PaymentHistory paymentHistory = dto.to(member, true);
         paymentRepository.save(paymentHistory);
         return new PaymentResponseDto(member.getNickName(), member.getBalance());
@@ -55,11 +55,11 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponseDto withdraw(PaymentRequestDto dto) {
-        if (paymentRepository.existsByTranSeqNo(dto.tran_seq_no())) {
+        if (paymentRepository.existsByTranSeqNo(dto.tranSeqNo())) {
             throw new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "이미 진행된 내역입니다.");
         }
         Member member = memberService.getByIdOrThrow(dto.memberId());
-        member.changeBalance(false, dto.tran_amt());
+        member.changeBalance(false, dto.tranAmt());
         PaymentHistory paymentHistory = dto.to(member, false);
         paymentRepository.save(paymentHistory);
         return new PaymentResponseDto(member.getNickName(), member.getBalance());

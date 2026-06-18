@@ -58,7 +58,7 @@ public class PaymentServiceUnitExceptionTest {
             Long tran_amt = 5000L;
             PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 1L);
 
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(true);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(true);
             //when, then
             assertThatThrownBy(() -> paymentService.deposit(dto))
                     .isInstanceOf(InvalidInputException.class)
@@ -72,7 +72,7 @@ public class PaymentServiceUnitExceptionTest {
             Long tran_amt = 5000L;
             PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 99L);
 
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
             given(memberService.getByIdOrThrow(dto.memberId())).willThrow(new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "존재하지 않는 회원입니다."));
             //when, then
             assertThatThrownBy(() -> paymentService.deposit(dto))
@@ -96,7 +96,7 @@ public class PaymentServiceUnitExceptionTest {
                     .address(new Address("서울", "강남", "역삼"))
                     .build();
 
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
             given(memberService.getByIdOrThrow(1L)).willReturn(findMember);
             //when, then
             assertThatThrownBy(() -> paymentService.deposit(dto))
@@ -119,7 +119,7 @@ public class PaymentServiceUnitExceptionTest {
                     .address(new Address("서울", "강남", "역삼"))
                     .build();
             //when
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
             given(memberService.getByIdOrThrow(1L)).willReturn(findMember);
             //then
             assertThatThrownBy(() -> paymentService.deposit(dto))
@@ -142,7 +142,7 @@ public class PaymentServiceUnitExceptionTest {
                     .address(new Address("서울", "강남", "역삼"))
                     .build();
             //when
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
             given(memberService.getByIdOrThrow(1L)).willReturn(findMember);
             //then
             assertThatThrownBy(() -> paymentService.deposit(dto))
@@ -164,7 +164,7 @@ public class PaymentServiceUnitExceptionTest {
             Long tran_amt = 5000L;
             PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 1L);
 
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(true);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(true);
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
                     .isInstanceOf(InvalidInputException.class)
@@ -178,7 +178,7 @@ public class PaymentServiceUnitExceptionTest {
             Long tran_amt = 5000L;
             PaymentRequestDto dto = new PaymentRequestDto(tranSeqNo, tran_amt, 99L);
 
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
             given(memberService.getByIdOrThrow(dto.memberId())).willThrow(new InvalidInputException(HttpStatus.BAD_REQUEST.value(), "존재하지 않는 회원입니다."));
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
@@ -202,7 +202,7 @@ public class PaymentServiceUnitExceptionTest {
                     .address(new Address("서울", "강남", "역삼"))
                     .build();
 
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
             given(memberService.getByIdOrThrow(dto.memberId())).willReturn(findMember);
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
@@ -225,7 +225,7 @@ public class PaymentServiceUnitExceptionTest {
                     .address(new Address("서울", "강남", "역삼"))
                     .build();
 
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
             given(memberService.getByIdOrThrow(dto.memberId())).willReturn(findMember);
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
@@ -248,7 +248,7 @@ public class PaymentServiceUnitExceptionTest {
                     .address(new Address("서울", "강남", "역삼"))
                     .build();
 
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
             given(memberService.getByIdOrThrow(dto.memberId())).willReturn(findMember);
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))
@@ -271,7 +271,7 @@ public class PaymentServiceUnitExceptionTest {
                     .address(new Address("서울", "강남", "역삼"))
                     .build();
 
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
             given(memberService.getByIdOrThrow(dto.memberId())).willReturn(findMember);
             //when, then
             assertThatThrownBy(() -> paymentService.withdraw(dto))

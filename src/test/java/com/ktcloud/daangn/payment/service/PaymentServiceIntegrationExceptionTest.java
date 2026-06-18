@@ -77,8 +77,8 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
             Member member = em.find(Member.class, dto.memberId());
             PaymentHistory paymentHistory = PaymentHistory.builder()
                     .member(member)
-                    .tranSeqNo(dto.tran_seq_no())
-                    .changedCash(dto.tran_amt())
+                    .tranSeqNo(dto.tranSeqNo())
+                    .changedCash(dto.tranAmt())
                     .type(PaymentStatus.DEPOSIT)
                     .balance(member.getBalance())
                     .localDateTime(LocalDateTime.now())
@@ -151,8 +151,8 @@ public class PaymentServiceIntegrationExceptionTest extends TestContainerConfig 
             Member member = em.find(Member.class, dto.memberId());
             PaymentHistory paymentHistory = PaymentHistory.builder()
                     .member(member)
-                    .tranSeqNo(dto.tran_seq_no())
-                    .changedCash(dto.tran_amt())
+                    .tranSeqNo(dto.tranSeqNo())
+                    .changedCash(dto.tranAmt())
                     .type(PaymentStatus.WITHDRAWAL)
                     .balance(member.getBalance())
                     .localDateTime(LocalDateTime.now())
