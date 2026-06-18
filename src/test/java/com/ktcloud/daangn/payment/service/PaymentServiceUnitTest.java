@@ -67,7 +67,7 @@ class PaymentServiceUnitTest {
                     .address(new Address("서울", "강남", "역삼"))
                     .build();
 
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
             given(memberService.getByIdOrThrow(1L)).willReturn(findMember);
             //when
             PaymentResponseDto result = paymentService.deposit(dto);
@@ -97,7 +97,7 @@ class PaymentServiceUnitTest {
                     .address(new Address("서울", "강남", "역삼"))
                     .build();
 
-            given(paymentRepository.existsByTranSeqNo(dto.tran_seq_no())).willReturn(false);
+            given(paymentRepository.existsByTranSeqNo(dto.tranSeqNo())).willReturn(false);
             given(memberService.getByIdOrThrow(1L)).willReturn(findMember);
             //when
             PaymentResponseDto result = paymentService.withdraw(dto);

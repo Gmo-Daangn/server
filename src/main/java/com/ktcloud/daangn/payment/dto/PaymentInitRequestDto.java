@@ -1,13 +1,13 @@
 package com.ktcloud.daangn.payment.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public record PaymentInitRequestDto(
-        @NotBlank
+        @NotNull
         Long roomId,
-        @NotBlank
+        @NotNull
         Long postId,
-        @NotBlank
+        @NotNull
         Long amount
 ) {
 }
