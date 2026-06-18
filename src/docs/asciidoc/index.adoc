@@ -245,13 +245,13 @@ include::{snippets}/payment-token-detail-success/curl-request.adoc[]
 == 거래 진행 성공
 
 === 요청
-include::{snippets}/payment-token-detail-success/http-request.adoc[]
-include::{snippets}/payment-token-detail-success/path-parameters.adoc[]
-include::{snippets}/payment-link-create-success/response-fields.adoc[]
+include::{snippets}/payment-confirm-success/http-request.adoc[]
+include::{snippets}/payment-confirm-success/path-parameters.adoc[]
+include::{snippets}/payment-confirm-success/response-fields.adoc[]
 
 === 응답
-include::{snippets}/payment-token-detail-success/http-response.adoc[]
-include::{snippets}/payment-token-detail-success/response-fields.adoc[]
+include::{snippets}/payment-confirm-success/http-response.adoc[]
+include::{snippets}/payment-confirm-success/response-fields.adoc[]
 
 === CURL
-include::{snippets}/payment-token-detail-success/curl-request.adoc[]
+include::{snippets}/payment-confirm-success/curl-request.adoc[]
