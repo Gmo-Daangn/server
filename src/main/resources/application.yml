@@ -6,3 +6,8 @@ spring:
     name: gmo-daangn
   profiles:
     default: dev
+
+app:
+  notification:
+    redis:
+      pubsub-channel: ${NOTIFICATION_REDIS_PUBSUB_CHANNEL:notification:sse}
