@@ -9,6 +9,7 @@
 - [알림 목록 조회](#_알림_목록_조회)
 - [알림 읽음 처리](#_알림_읽음_처리)
 - [알림 삭제](#_알림_삭제)
+- [결제 관련 알림](#_결제_관련_알림)
 - [채팅방 생성 성공](#_채팅방_생성_성공)
 - [채팅방 재입장 성공](#_채팅방_재입장_성공)
 - [채팅방 목록 조회 성공](#_채팅방_목록_조회_성공)
@@ -273,7 +274,7 @@ Content-Length: 267
 | `message`              | `String`  | 응답 메시지              |
 | `data[].id`            | `Number`  | 알림 ID               |
 | `data[].receiverId`    | `Number`  | 수신자 회원 ID           |
-| `data[].templateType`  | `String`  | 알림 템플릿 타입           |
+| `data[].templateType`  | `String`  | 알림 템플릿 타입 (`CHAT`, `DEPOSIT_COMPLETE`, `PAYMENT_REQUEST`, `PAYMENT_COMPLETE`) |
 | `data[].templateTitle` | `String`  | 알림 제목               |
 | `data[].identifier`    | `Number`  | 도메인 식별자 (예: 채팅방 ID) |
 | `data[].message`       | `String`  | 알림 본문 내용            |
@@ -397,6 +398,86 @@ Content-Length: 106
 $ curl 'http://localhost:8080/api/v1/notification/1' -i -X DELETE \
     -H 'Accept: application/json'
 ```
+
+<a id="_결제_관련_알림"></a>
+
+## 결제 관련 알림
+
+결제 도메인에서 발생하는 이벤트가 알림으로 자동 변환되어 전달됩니다. 별도 API 없이 [알림 SSE 구독](#_알림_sse_구독), [알림 목록 조회](#_알림_목록_조회) API를 통해 수신합니다.
+
+### 알림 템플릿 타입
+
+| `templateType`     | `templateTitle` | 메시지 형식                                              | 수신자                         | 발생 조건                                      |
+|--------------------|-----------------|------------------------------------------------------|------------------------------|--------------------------------------------|
+| `DEPOSIT_COMPLETE` | 당근페이 충전         | 당근페이에 {금액}원이 충전되었습니다.                               | 충전한 회원                       | `POST /api/v1/payments/deposit` 성공 시        |
+| `PAYMENT_REQUEST`  | 결제 요청           | 판매자님이 {금액}원 송금을 요청했어요.                              | 해당 상품 1:1 채팅방의 구매자(판매자 제외)   | `POST /api/v1/payments/links` 성공 시          |
+| `PAYMENT_COMPLETE` | 결제 완료           | 구매자님이 {금액}원을 송금했어요. 확인 후 물품을 전달해 주세요.              | 판매자                          | `POST /api/v1/payments/links/{tx}` 성공 시    |
+
+금액(`{금액}`)은 천 단위 구분 쉼표가 포함된 문자열로 치환됩니다. (예: `10,000`)
+
+### 응답 예시
+
+**당근페이 충전 (`DEPOSIT_COMPLETE`)**
+
+```json
+{
+  "id": 2,
+  "receiverId": 1,
+  "templateType": "DEPOSIT_COMPLETE",
+  "templateTitle": "당근페이 충전",
+  "identifier": 0,
+  "message": "당근페이에 10,000원이 충전되었습니다.",
+  "isRead": false,
+  "createdAt": "2026-05-19T15:41:17.439812"
+}
+```
+
+**결제 요청 (`PAYMENT_REQUEST`)**
+
+```json
+{
+  "id": 3,
+  "receiverId": 2,
+  "templateType": "PAYMENT_REQUEST",
+  "templateTitle": "결제 요청",
+  "identifier": 0,
+  "message": "판매자님이 10,000원 송금을 요청했어요.",
+  "isRead": false,
+  "createdAt": "2026-05-19T15:42:10.123456"
+}
+```
+
+**결제 완료 (`PAYMENT_COMPLETE`)**
+
+```json
+{
+  "id": 4,
+  "receiverId": 3,
+  "templateType": "PAYMENT_COMPLETE",
+  "templateTitle": "결제 완료",
+  "identifier": 0,
+  "message": "구매자님이 10,000원을 송금했어요. 확인 후 물품을 전달해 주세요.",
+  "isRead": false,
+  "createdAt": "2026-05-19T15:43:05.654321"
+}
+```
+
+### 동작 흐름
+
+1. 결제 API 호출이 성공하면 `PaymentEventPublishingAspect`가 결제 이벤트를 발행합니다.
+2. `PaymentNotificationBridge`가 결제 이벤트를 `NotificationEvent`로 변환합니다.
+3. `NotificationEventListener`가 알림을 DB에 저장하고 SSE로 실시간 전송합니다.
+
+**결제 요청 알림 대상 조회 조건**
+
+- 판매자가 참여한 상품(`PRODUCT`) 타입 1:1 채팅방
+- 채팅방의 `productId`가 결제 요청 게시글 ID와 일치
+- 채팅방 참여자가 2명(판매자 + 구매자)
+
+**결제 완료 알림**
+
+- 구매자가 결제를 확정(`confirmPayment`)하면 판매자에게 알림이 전송됩니다.
+- 판매자·구매자·게시글로 연결된 1:1 채팅방이 없으면 알림은 발송되지 않습니다.
 
 <a id="_채팅방_생성_성공"></a>
 
