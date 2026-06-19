@@ -90,6 +90,10 @@ dependencies {
 
     //UUID Creator
     implementation 'com.github.f4b6a3:uuid-creator:6.1.1'
+
+    //Prometheus, Actuator
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 }
 
 tasks.named('test') {

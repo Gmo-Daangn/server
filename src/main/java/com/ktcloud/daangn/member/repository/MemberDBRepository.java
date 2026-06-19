@@ -2,6 +2,7 @@ package com.ktcloud.daangn.member.repository;
 
 import com.ktcloud.daangn.member.entity.Member;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -39,5 +40,10 @@ public class MemberDBRepository implements MemberRepository {
                 .getResultList()
                 .stream()
                 .findFirst();
+    }
+
+    @Override
+    public Optional<Member> findByIdWithLock(Long id) {
+        return Optional.ofNullable(em.find(Member.class, id, LockModeType.PESSIMISTIC_WRITE));
     }
 }

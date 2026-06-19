@@ -27,7 +27,7 @@ public class PaymentEventPublishingAspect {
 
     @AfterReturning("execution(* com.ktcloud.daangn.payment.service.PaymentService.deposit(..)) && args(dto)")
     public void publishDepositCompleteEvent(PaymentRequestDto dto) {
-        eventPublisher.publishEvent(new DepositCompleteEvent(dto.memberId(), dto.tran_amt()));
+        eventPublisher.publishEvent(new DepositCompleteEvent(dto.memberId(), dto.tranAmt()));
     }
 
     @AfterReturning("execution(* com.ktcloud.daangn.payment.service.PaymentService.requestPayment(..)) && args(dto)")

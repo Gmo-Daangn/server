@@ -16,4 +16,6 @@ public interface MemberService {
     Optional<Member> getByEmail(String email);
 
     MemberInfoResponseDto getMyInfo(Long id);
+
+    Member getByIdOrThrowWithLock(Long id);
 }

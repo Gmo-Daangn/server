@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
@@ -27,21 +29,20 @@ public class PaymentController {
     }
 
     @PostMapping("/links")
-    public BaseResponse<String> create(@Valid @RequestBody PaymentInitRequestDto dto) {
-        return BaseResponse.success(paymentService.requestPayment(dto));
+    public BaseResponse<String> create(@AuthenticationPrincipal CustomUser user, @Valid @RequestBody PaymentInitRequestDto dto) {
+        paymentService.requestPayment(user.getMemberId(), dto);
+        return BaseResponse.success("거래 생성 성공");
     }
 
     @GetMapping("/links/{tx}")
-    public BaseResponse<PaymentTradeResponse> detail(@PathVariable String tx) {
-        PaymentTokenDto dto = PaymentTokenDto.parse(tx);
-        return BaseResponse.success(new PaymentTradeResponse(dto.postId(), dto.tranSeqNo(), dto.amount()));
+    public BaseResponse<PaymentTokenDto> detail(@PathVariable UUID tx) {
+        return BaseResponse.success(paymentService.getTokenInfo(tx));
     }
 
     @PostMapping("/links/{tx}")
-    public BaseResponse<PaymentResponseDto> confirmPayment(@AuthenticationPrincipal CustomUser user, @PathVariable String tx) {
+    public BaseResponse<PaymentResponseDto> confirmPayment(@AuthenticationPrincipal CustomUser user, @PathVariable UUID tx) {
         Long fromMemberId = user.getMemberId();
-        PaymentTokenDto dto = PaymentTokenDto.parse(tx);
-        return BaseResponse.success(paymentService.confirmPayment(fromMemberId, dto));
+        return BaseResponse.success(paymentService.confirmPayment(fromMemberId, tx));
     }
 
 }
