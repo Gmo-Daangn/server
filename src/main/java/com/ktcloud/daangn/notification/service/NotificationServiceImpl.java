@@ -6,6 +6,7 @@ import com.ktcloud.daangn.notification.dto.NotificationResponseDto;
 import com.ktcloud.daangn.notification.entity.Notification;
 import com.ktcloud.daangn.notification.entity.NotificationTemplate;
 import com.ktcloud.daangn.notification.event.NotificationEvent;
+import com.ktcloud.daangn.notification.redis.NotificationSsePublisher;
 import com.ktcloud.daangn.notification.repository.EmitterRepository;
 import com.ktcloud.daangn.notification.repository.NotificationRepository;
 import com.ktcloud.daangn.notification.repository.NotificationTemplateRepository;
@@ -15,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,6 +29,8 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationTemplateRepository templateRepository;
     private final MemberService memberService;
+    private final NotificationSseDeliveryService deliveryService;
+    private final NotificationSsePublisher ssePublisher;
 
     // SSE 연결
     // SSE 구독 요청 처리
@@ -44,6 +46,10 @@ public class NotificationServiceImpl implements NotificationService {
         sendToClient(receiverId, "SSE 연결 성공 [receiverId=" + receiverId + "]");
 
         return emitter;
+    }
+
+    private void sendToClient(Long receiverId, String message) {
+        deliveryService.deliver(receiverId, message);
     }
 
     // 알림 생성 및 전송
@@ -64,22 +70,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         notificationRepository.save(notification);
 
-        sendToClient(event.receiverId(), finalMessage);
-    }
-
-    private void sendToClient(Long receiverId, Object data) {
-        SseEmitter emitter = emitterRepository.get(receiverId);
-        if (emitter != null) {
-            try {
-                emitter.send(SseEmitter.event()
-                        .id(String.valueOf(System.currentTimeMillis()))
-                        .name("notification")
-                        .data(data));
-            } catch (IOException exception) {
-                emitterRepository.deleteById(receiverId);
-                log.error("SSE 전송 실패로 인한 연결 삭제: {}", receiverId);
-            }
-        }
+        ssePublisher.publish(event.receiverId(), finalMessage);
     }
 
     // 알림 목록 조회

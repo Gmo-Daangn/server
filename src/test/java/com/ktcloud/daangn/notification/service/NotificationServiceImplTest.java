@@ -7,6 +7,7 @@ import com.ktcloud.daangn.notification.dto.NotificationResponseDto;
 import com.ktcloud.daangn.notification.entity.Notification;
 import com.ktcloud.daangn.notification.entity.NotificationTemplate;
 import com.ktcloud.daangn.notification.event.NotificationEvent;
+import com.ktcloud.daangn.notification.redis.NotificationSsePublisher;
 import com.ktcloud.daangn.notification.repository.EmitterRepository;
 import com.ktcloud.daangn.notification.repository.NotificationRepository;
 import com.ktcloud.daangn.notification.repository.NotificationTemplateRepository;
@@ -23,7 +24,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -33,8 +33,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -51,6 +49,10 @@ class NotificationServiceImplTest {
     NotificationTemplateRepository templateRepository;
     @Mock
     MemberService memberService;
+    @Mock
+    NotificationSseDeliveryService deliveryService;
+    @Mock
+    NotificationSsePublisher ssePublisher;
 
     @InjectMocks
     NotificationServiceImpl notificationService;
@@ -138,39 +140,19 @@ class NotificationServiceImplTest {
             assertThat(captured.getReceiver().getId()).isEqualTo(MEMBER_ID);
             assertThat(captured.getTemplate()).isEqualTo(template);
             assertThat(captured.getMessage()).isEqualTo("안녕 주문완료");
-            verify(emitterRepository).get(MEMBER_ID);
+            verify(ssePublisher).publish(MEMBER_ID, "안녕 주문완료");
         }
 
         @Test
-        @DisplayName("[HAPPY] 활성화된 SSE 연결이 존재하면 클라이언트로 이벤트를 정상 전송한다")
-        void create_validEvent_sendsSseSuccessfully() throws IOException {
+        @DisplayName("[HAPPY] 알림 생성 시 Redis pub/sub으로 SSE 메시지를 발행한다")
+        void create_validEvent_publishesSseMessage() {
             givenExistingMember(MEMBER_ID);
             stubTemplateRepository("ORDER", "안녕 {templateText}");
-
-            SseEmitter mockEmitter = mock(SseEmitter.class);
-            given(emitterRepository.get(MEMBER_ID)).willReturn(mockEmitter);
 
             NotificationEvent event = new NotificationEvent(MEMBER_ID, "ORDER", 99L, "주문완료");
             notificationService.createAndSendNotification(event);
 
-            verify(mockEmitter).send(any(SseEmitter.SseEventBuilder.class));
-        }
-
-        @Test
-        @DisplayName("[Exception] SSE 전송 중 IOException 발생 시 emitter를 저장소에서 삭제한다")
-        void create_validEvent_deletesEmitterOnIoException() throws IOException {
-            givenExistingMember(MEMBER_ID);
-            stubTemplateRepository("ORDER", "안녕 {templateText}");
-
-            SseEmitter mockEmitter = mock(SseEmitter.class);
-            given(emitterRepository.get(MEMBER_ID)).willReturn(mockEmitter);
-
-            doThrow(new IOException("클라이언트 연결 끊김")).when(mockEmitter).send(any(SseEmitter.SseEventBuilder.class));
-
-            NotificationEvent event = new NotificationEvent(MEMBER_ID, "ORDER", 99L, "주문완료");
-            notificationService.createAndSendNotification(event);
-
-            verify(emitterRepository).deleteById(MEMBER_ID);
+            verify(ssePublisher).publish(MEMBER_ID, "안녕 주문완료");
         }
 
         @Test
@@ -184,7 +166,7 @@ class NotificationServiceImplTest {
                     .isInstanceOf(InvalidInputException.class)
                     .hasMessageContaining("존재하지 않는 ID");
 
-            verifyNoInteractions(notificationRepository, templateRepository, emitterRepository);
+            verifyNoInteractions(notificationRepository, templateRepository, emitterRepository, ssePublisher);
         }
 
         @Test
